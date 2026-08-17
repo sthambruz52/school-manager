@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #FAF6EC;
+  color: #2B2620;
+}
+
+.app {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.header {
+  background: #1F4D3A;
+  color: #fff;
+  margin: 0 -20px 24px;
+  padding: 24px 20px;
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.header p {
+  opacity: 0.8;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.dashboard {
+  margin-bottom: 28px;
+}
+
+.dashboard h2 {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.student-list h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.add-student-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.add-student-form input {
+  flex: 1;
+  min-width: 120px;
+  padding: 9px 10px;
+  border: 1px solid #DED5BE;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.add-student-form button {
+  padding: 9px 16px;
+  background: #1F4D3A;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-list ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-list li {
+  background: #fff;
+  border-left: 3px solid #DED5BE;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14.5px;
+}
