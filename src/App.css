@@ -87,3 +87,59 @@ body {
   padding: 12px 14px;
   font-size: 14.5px;
 }
+.attendance {
+  margin-top: 32px;
+}
+
+.attendance-summary {
+  color: #8B8275;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.attendance ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attendance-row {
+  background: #fff;
+  border-left: 3px solid #DED5BE;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14.5px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attendance-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.attendance-buttons button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #DED5BE;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attendance-buttons .present.active {
+  background: #1F4D3A;
+  color: #fff;
+  border-color: #1F4D3A;
+}
+
+.attendance-buttons .absent.active {
+  background: #B8503D;
+  color: #fff;
+  border-color: #B8503D;
+}
