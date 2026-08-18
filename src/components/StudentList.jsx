@@ -1,26 +1,36 @@
-import { useState } from 'react'
-
-const initialStudents = [
-  { id: 1, name: 'Amara Chen', rollNo: '501' },
-  { id: 2, name: 'Diego Fuentes', rollNo: '502' },
-  { id: 3, name: 'Priya Nair', rollNo: '503' },
-]
+import { useState, useEffect } from 'react'
+import { db } from '../firebase'
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+} from 'firebase/firestore'
 
 function StudentList() {
-  const [students, setStudents] = useState(initialStudents)
+  const [students, setStudents] = useState([])
   const [name, setName] = useState('')
   const [rollNo, setRollNo] = useState('')
 
-  function handleAddStudent() {
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'students'), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      setStudents(data)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  async function handleAddStudent() {
     if (!name.trim() || !rollNo.trim()) return
 
-    const newStudent = {
-      id: Date.now(),
+    await addDoc(collection(db, 'students'), {
       name: name,
       rollNo: rollNo,
-    }
+    })
 
-    setStudents([...students, newStudent])
     setName('')
     setRollNo('')
   }
