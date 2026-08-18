@@ -143,3 +143,78 @@ body {
   color: #fff;
   border-color: #B8503D;
 }
+.grades {
+  margin-top: 32px;
+}
+
+.add-grade-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.add-grade-form select,
+.add-grade-form input {
+  padding: 9px 10px;
+  border: 1px solid #DED5BE;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.add-grade-form select {
+  flex: 1.4;
+  min-width: 140px;
+}
+
+.add-grade-form input[type="text"] {
+  flex: 1;
+  min-width: 100px;
+}
+
+.add-grade-form input[type="number"] {
+  width: 70px;
+}
+
+.add-grade-form button {
+  padding: 9px 16px;
+  background: #1F4D3A;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.grades ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grade-row {
+  background: #fff;
+  border-left: 3px solid #DED5BE;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14.5px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grade-pct {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.grade-pct.good {
+  color: #1F4D3A;
+}
+
+.grade-pct.bad {
+  color: #B8503D;
+}
