@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { doc, onSnapshot, collection, query, where, orderBy, limit, onSnapshot as onSnap } from "firebase/firestore";
-import { GraduationCap, Users, BookOpen, ShieldCheck, Heart, Award, MapPin, Phone, Mail, Clock, ArrowRight, Trophy } from "lucide-react";
+import { GraduationCap, Users, BookOpen, ShieldCheck, Heart, Award, MapPin, Phone, Mail, Clock, ArrowRight, Trophy, Briefcase, UserPlus, FileEdit, ClipboardCheck, Rocket, ChevronDown, ChevronUp } from "lucide-react";
 import Login from "./Login";
 
 export default function LandingPage() {
@@ -9,10 +9,10 @@ export default function LandingPage() {
   const [contactInfo, setContactInfo] = useState(null);
   const [heroPhotos, setHeroPhotos] = useState([]);
   const [latestActivities, setLatestActivities] = useState([]);
-
+  const [staffPreview, setStaffPreview] = useState([]);
   const [subjectCount, setSubjectCount] = useState(0);
   const [mode, setMode] = useState(null);
-
+  const [openFaq, setOpenFaq] = useState(null);
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "schoolInfo"), (docSnap) => {
       if (docSnap.exists()) setSchoolInfo(docSnap.data());
@@ -38,7 +38,11 @@ export default function LandingPage() {
     const unsub = onSnap(q, (snap) => setLatestActivities(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return () => unsub();
   }, []);
-
+  useEffect(() => {
+    const q = query(collection(db, "staff"), orderBy("createdAt", "desc"), limit(4));
+    const unsub = onSnap(q, (snap) => setStaffPreview(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return () => unsub();
+  }, []);
 
 
   useEffect(() => {
@@ -209,6 +213,27 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+            {staffPreview.length > 0 && (
+        <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
+          <h2 style={sectionTitleStyle}>Meet Our Team</h2>
+          <p style={sectionSubStyle}>The people dedicated to your child's growth.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "16px" }}>
+            {staffPreview.map((s) => (
+              <div key={s.id} style={{ background: "white", borderRadius: "12px", padding: "18px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+                {s.photoURL ? (
+                  <img src={s.photoURL} alt="" style={{ width: "70px", height: "70px", borderRadius: "50%", objectFit: "cover", margin: "0 auto 10px" }} />
+                ) : (
+                  <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", color: "#1f4d3a" }}>
+                    <Briefcase size={26} />
+                  </div>
+                )}
+                <div style={{ fontWeight: "bold", fontSize: "14px" }}>{s.name}</div>
+                <div style={{ fontSize: "12px", color: "#666" }}>{s.title}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
         <h2 style={sectionTitleStyle}>What Our Families Say</h2>
         <p style={sectionSubStyle}>Real experiences from our school community.</p>
@@ -239,6 +264,58 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
+      </div>
+            <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
+        <h2 style={sectionTitleStyle}>How to Join Us</h2>
+        <p style={sectionSubStyle}>Getting your child enrolled is simple and quick.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+          {[
+            { icon: UserPlus, step: "1", title: "Register", text: "Create an account as a Student or Parent in just a few minutes." },
+            { icon: FileEdit, step: "2", title: "Complete Profile", text: "Fill in class, subjects, and family details for your records." },
+            { icon: ClipboardCheck, step: "3", title: "Get Confirmed", text: "Our admin team reviews and confirms your enrollment." },
+            { icon: Rocket, step: "4", title: "Start Learning", text: "Access grades, attendance, fees, and more, right away." },
+          ].map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.step} style={{ background: "white", borderRadius: "12px", padding: "22px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", position: "relative" }}>
+                <div style={{ position: "absolute", top: "12px", right: "16px", fontSize: "13px", fontWeight: "bold", color: "#d4a017" }}>
+                  {s.step}
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px", color: "#1f4d3a" }}>
+                  <Icon size={30} />
+                </div>
+                <h3 style={{ margin: "0 0 8px", fontSize: "15px" }}>{s.title}</h3>
+                <p style={{ margin: 0, fontSize: "13px", color: "#666", lineHeight: "1.5" }}>{s.text}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+            <div style={{ maxWidth: "700px", margin: "50px auto 0", padding: "0 20px" }}>
+        <h2 style={sectionTitleStyle}>Frequently Asked Questions</h2>
+        <p style={sectionSubStyle}>Everything you might want to know before registering.</p>
+        {[
+          { q: "How do I register my child?", a: "Tap 'Register Now', choose 'Student', and fill in the signup form. You'll then complete a short profile with class, subjects, and parent details." },
+          { q: "Can parents track their child's progress?", a: "Yes — parents get their own account linked to their child, with access to grades, attendance, fees, and their class teacher's details." },
+          { q: "Is there a fee to create an account?", a: "No, creating an account on the platform is completely free. School fees are managed separately through the Fees section once enrolled." },
+          { q: "Can I use this on my phone?", a: "Yes, the whole platform is built to work smoothly on phones, tablets, and computers alike." },
+          { q: "What if I forget my password?", a: "On the Login page, tap 'Forgot password?' and enter your email — a reset link will be sent to you." },
+        ].map((item, i) => (
+          <div key={i} style={{ background: "white", borderRadius: "10px", marginBottom: "10px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+            <div
+              onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              style={{ padding: "16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: "bold", color: "#1f4d3a", fontSize: "14px" }}
+            >
+              {item.q}
+              {openFaq === i ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </div>
+            {openFaq === i && (
+              <div style={{ padding: "0 16px 16px", fontSize: "13px", color: "#666", lineHeight: "1.6" }}>
+                {item.a}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       <div style={{ background: "#1f4d3a", color: "white", marginTop: "50px", padding: "40px 20px" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
