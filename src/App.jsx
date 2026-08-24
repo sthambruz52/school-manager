@@ -1,106 +1,318 @@
 import { useState, useEffect } from "react";
-import { db } from "./firebase";
-import { collection, addDoc, onSnapshot, updateDoc, doc } from "firebase/firestore";
-import Fees from "./components/Fees"; // <-- THIS IS THE NEW LINE 4
-
+import { db, auth } from "./firebase";
+import { collection, query, where, onSnapshot, updateDoc, doc, setDoc } from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import Fees from "./components/Fees";
+import Subjects from "./components/Subjects";
+import Login from "./components/Login";
+import LandingPage from "./components/LandingPage";
+import StudentProfile from "./components/StudentProfile";
+import TeacherProfile from "./components/TeacherProfile";
+import ParentProfile from "./components/ParentProfile";
+import ClassTeachers from "./components/ClassTeachers";
+import Grades from "./components/Grades";
+import StudentDashboard from "./components/StudentDashboard";
+import ParentDashboard from "./components/ParentDashboard";
+import SideMenu from "./components/SideMenu";
+import StaffDirectory from "./components/StaffDirectory";
+import Gallery from "./components/Gallery";
+import AdminStudents from "./components/AdminStudents";
+import Activities from "./components/Activities";
+import Home from "./components/Home";
+import SchoolInfo from "./components/SchoolInfo";
+import ReportCard from "./components/ReportCard";
+import NoticeBoard from "./components/NoticeBoard";
+import ContactUs from "./components/ContactUs";
+import MySubjects from "./components/MySubjects";
 function App() {
+  const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState("");
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState(null);
   const [students, setStudents] = useState([]);
-  const [name, setName] = useState("");
-  const [roll, setRoll] = useState("");
-  const [grades, setGrades] = useState([]);
-  const [selectedStudent, setSelectedStudent] = useState("");
-  const [subject, setSubject] = useState("");
-  const [score, setScore] = useState("");
-  const [total, setTotal] = useState("100");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeView, setActiveView] = useState("");
 
   useEffect(() => {
-    onSnapshot(collection(db, "students"), (snap) => {
-      setStudents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      if (!firebaseUser) {
+        setUserRole("");
+        setUserData(null);
+        setAuthChecked(true);
+      }
     });
-    onSnapshot(collection(db, "grades"), (snap) => {
-      setGrades(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    return () => unsub();
   }, []);
 
-  const addStudent = async () => {
-    if (!name || !roll) return alert("Enter name and roll");
-    await addDoc(collection(db, "students"), { name, roll, present: true });
-    setName(""); setRoll("");
-  };
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserRole(data.role);
+        setUserData(data);
+        setAuthChecked(true);
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "users"), where("role", "==", "Student"));
+    const unsub = onSnapshot(q, (snap) => {
+      setStudents(
+        snap.docs.map((d) => ({
+          id: d.id,
+          name: d.data().fullName,
+          classLevel: d.data().classLevel,
+          session: d.data().session,
+          term: d.data().term,
+          present: d.data().present || false
+        }))
+      );
+    });
+    return () => unsub();
+  }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, "settings", "schoolInfo"), (docSnap) => {
+      if (docSnap.exists()) setSchoolInfo(docSnap.data());
+    });
+    return () => unsub();
+  }, [user]);
+  useEffect(() => {
+    if (!userRole) return;
+    if (!activeView) {
+      setActiveView("home");
+    }
+  }, [userRole, activeView]);
 
   const togglePresent = async (student) => {
-    await updateDoc(doc(db, "students", student.id), { present: !student.present });
+    const newPresent = !student.present;
+    await updateDoc(doc(db, "users", student.id), { present: newPresent });
+
+    const today = new Date().toISOString().split("T")[0];
+    await setDoc(doc(db, "attendance", `${student.id}_${today}`), {
+      studentId: student.id,
+      date: today,
+      status: newPresent ? "Present" : "Absent",
+      classLevel: student.classLevel || "",
+      session: student.session || "",
+      term: student.term || ""
+    }, { merge: true });
   };
 
-  const addGrade = async () => {
-    if (!selectedStudent || !subject || !score) return alert("Fill all");
-    const student = students.find(s => s.id === selectedStudent);
-    await addDoc(collection(db, "grades"), {
-      studentId: selectedStudent,
-      studentName: student.name,
-      subject,
-      score: Number(score),
-      total: Number(total),
-      percent: Math.round((Number(score) / Number(total)) * 100)
-    });
-    setSubject(""); setScore("");
+  const handleLogout = async () => {
+    await signOut(auth);
   };
 
-  const presentCount = students.filter(s => s.present).length;
+  const presentCount = students.filter((s) => s.present).length;
+
+  if (!authChecked) {
+    return <div style={{ textAlign: 'center', marginTop: '100px' }}>Loading...</div>;
+  }
+
+    if (!user) {
+    return <LandingPage />;
+  }
+
+  if (userData?.status === "disabled") {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '100px' }}>
+        <h2>Account Disabled</h2>
+        <p>Your account has been disabled by the school administrator.<br />Please contact the school for assistance.</p>
+        <button onClick={handleLogout} style={{ background: '#c2704e', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', marginTop: '10px' }}>Logout</button>
+      </div>
+    );
+  }
+
+  if (userRole === "Student" && userData && !userData.profileComplete) {
+    return <StudentProfile onComplete={() => {}} />;
+  }
+
+  if (userRole === "Student" && editingProfile) {
+    return <StudentProfile existingData={userData} onComplete={() => setEditingProfile(false)} />;
+  }
+
+  if (userRole === "Teacher" && userData && !userData.profileComplete) {
+    return <TeacherProfile onComplete={() => {}} />;
+  }
+
+  if (userRole === "Teacher" && editingProfile) {
+    return <TeacherProfile existingData={userData} onComplete={() => setEditingProfile(false)} />;
+  }
+
+  if (userRole === "Parent" && userData && !userData.profileComplete) {
+    return <ParentProfile onComplete={() => {}} />;
+  }
+
+  if (userRole === "Parent" && editingProfile) {
+    return <ParentProfile existingData={userData} onComplete={() => setEditingProfile(false)} />;
+  }
+
+  const hasProfile = userRole === "Student" || userRole === "Teacher" || userRole === "Parent";
 
   return (
-    <div style={{ background: '#fdf6e9', minHeight: '100vh', padding: '20px', fontFamily: 'Arial' }}>
-      <div style={{ background: '#1f4d3a', color: 'white', padding: '30px', textAlign: 'center', maxWidth: '700px', margin: '0 auto', borderRadius: '8px' }}>
-        <h1>Roll & Ledger</h1>
-        <p>School Management System</p>
+    <div style={{ background: '#fdf6e9', minHeight: '100vh', fontFamily: 'Arial' }}>
+      <SideMenu
+        role={userRole}
+        activeView={activeView}
+        setActiveView={setActiveView}
+        userData={userData}
+        userEmail={user.email}
+        hasProfile={hasProfile}
+        onProfile={() => setEditingProfile(true)}
+        onLogout={handleLogout}
+        isOpen={menuOpen}
+        setIsOpen={setMenuOpen}
+      />
+
+      <div style={{ background: '#1f4d3a', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
+        <button
+          onClick={() => setMenuOpen(true)}
+          style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer', justifySelf: 'start' }}
+        >
+          ☰
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: 'clamp(15px, 4vw, 20px)',
+            fontWeight: '800',
+            letterSpacing: '0.4px',
+            color: '#ffffff',
+            textShadow: '0 1px 6px rgba(0,0,0,0.25)'
+          }}>
+            {schoolInfo?.schoolName || "School Management System"}
+          </h1>
+          {schoolInfo?.tagline && (
+            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#f2d98a', fontStyle: 'italic', fontWeight: '600' }}>
+              {schoolInfo.tagline}
+            </p>
+          )}
+        </div>
+        <div></div>
       </div>
 
-      <div style={{ maxWidth: '700px', margin: '20px auto' }}>
-        <h2 style={{ textAlign: 'center' }}>Dashboard</h2>
-        <p style={{ textAlign: 'center' }}>Welcome back, Admin.</p>
-
-        <h2 style={{ textAlign: 'center', marginTop: '30px' }}>Students</h2>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px' }}>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Student name" style={{ padding: '8px', borderRadius: '6px' }} />
-          <input value={roll} onChange={e => setRoll(e.target.value)} placeholder="Roll no." style={{ padding: '8px', borderRadius: '6px' }} />
-          <button onClick={addStudent} style={{ background: '#1f4d3a', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>Add Student</button>
+      {activeView === "home" && (
+        <Home role={userRole} userData={userData} userEmail={user.email} setActiveView={setActiveView} />
+      )}
+            {activeView !== "home" && (
+        <div style={{ maxWidth: '700px', margin: '16px auto 0', padding: '0 20px' }}>
+          <span
+            onClick={() => setActiveView("home")}
+            style={{ color: '#1f4d3a', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+          >
+            ← Back to Home
+          </span>
         </div>
-        {students.map(s => (
-          <div key={s.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', textAlign: 'center' }}>{s.name} — Roll {s.roll}</div>
-        ))}
+      )}
 
-        <h2 style={{ textAlign: 'center', marginTop: '40px' }}>Roll Call</h2>
-        <p style={{ textAlign: 'center', color: '#666' }}>{presentCount}/{students.length} present today</p>
-        {students.map(s => (
-          <div key={s.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{s.name} — Roll {s.roll}</span>
-            <div>
-              <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', marginRight: '5px', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
-              <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
+      {userRole === "Student" && userData && activeView === "dashboard" && <StudentDashboard userData={userData} />}
+      {userRole === "Parent" && userData && activeView === "dashboard" && <ParentDashboard userData={userData} />}
+
+      {(userRole === "Student" || userRole === "Parent") && activeView === "staff" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <StaffDirectory isAdmin={false} />
+        </div>
+      )}
+      {(userRole === "Student" || userRole === "Parent") && activeView === "gallery" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <Gallery isAdmin={false} />
+        </div>
+      )}
+            {userRole === "Student" && userData && activeView === "reportcard" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <ReportCard isAdmin={false} fixedStudentId={user.uid} fixedStudentName={userData.fullName} />
+        </div>
+      )}
+            {userRole === "Student" && userData && activeView === "mysubjects" && (
+        <MySubjects userData={userData} />
+      )}
+            {userRole === "Parent" && userData && activeView === "reportcard" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          {(userData.children || []).length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#666' }}>No ward linked yet.</p>
+          ) : (
+            userData.children.map((child) => (
+              <div key={child.uid} style={{ marginBottom: '20px' }}>
+                <ReportCard isAdmin={false} fixedStudentId={child.uid} fixedStudentName={child.name} />
+              </div>
+            ))
+          )}
+        </div>
+      )}
+            {(userRole === "Student" || userRole === "Parent") && activeView === "noticeboard" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <NoticeBoard isAdmin={false} />
+        </div>
+      )}
+            {(userRole === "Student" || userRole === "Parent") && activeView === "contactus" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <ContactUs isAdmin={false} />
+        </div>
+      )}
+      {(userRole === "Student" || userRole === "Parent") && activeView === "activities" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <Activities isAdmin={false} />
+        </div>
+      )}
+
+      {(userRole === "Admin" || userRole === "Teacher") && activeView !== "home" && (
+        <div style={{ maxWidth: '700px', margin: '20px auto', padding: '0 20px' }}>
+
+          {activeView === "rollcall" && (
+            <>
+              <h2 style={{ textAlign: 'center' }}>Roll Call</h2>
+              <p style={{ textAlign: 'center', color: '#666' }}>{presentCount}/{students.length} present today</p>
+              {students.map(s => (
+                <div key={s.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{s.name} — {s.classLevel}</span>
+                  <div>
+                    <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', marginRight: '5px', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
+                    <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {activeView === "grades" && <Grades />}
+
+          {activeView === "fees" && userRole === "Admin" && <Fees students={students} />}
+
+          {activeView === "subjects" && <Subjects />}
+
+          {activeView === "classteachers" && userRole === "Admin" && <ClassTeachers />}
+
+          {activeView === "adminstudents" && (userRole === "Admin" || userRole === "Teacher") && (
+            <AdminStudents isAdmin={userRole === "Admin"} />
+          )}
+
+          {activeView === "staff" && <StaffDirectory isAdmin={userRole === "Admin"} />}
+
+          {activeView === "gallery" && <Gallery isAdmin={userRole === "Admin"} />}
+
+          {activeView === "activities" && <Activities isAdmin={userRole === "Admin"} />}
+                    {activeView === "noticeboard" && <NoticeBoard isAdmin={userRole === "Admin"} />}
+          {activeView === "schoolinfo" && userRole === "Admin" && <SchoolInfo />}
+                    {activeView === "reportcard" && (userRole === "Admin" || userRole === "Teacher") && (
+            <ReportCard isAdmin={true} />
+          )}
+          {activeView === "contactus" && (
+            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+              <ContactUs isAdmin={userRole === "Admin"} />
             </div>
-          </div>
-        ))}
-
-        <h2 style={{ textAlign: 'center', marginTop: '40px' }}>Grades</h2>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
-          <select value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)} style={{ padding: '8px', borderRadius: '6px' }}>
-            <option value="">Select student</option>
-            {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" style={{ padding: '8px', borderRadius: '6px' }} />
-          <input value={score} onChange={e => setScore(e.target.value)} placeholder="Score" style={{ padding: '8px', borderRadius: '6px', width: '70px' }} />
-          <input value={total} onChange={e => setTotal(e.target.value)} type="number" style={{ padding: '8px', borderRadius: '6px', width: '60px' }} />
-          <button onClick={addGrade} style={{ background: '#1f4d3a', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>Add Grade</button>
+          )}
         </div>
-        {grades.map(g => (
-          <div key={g.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{g.studentName} — {g.subject}</span><span style={{ color: '#1f4d3a', fontWeight: 'bold' }}>{g.score}/{g.total} ({g.percent}%)</span>
-          </div>
-        ))}
+      )}
 
-        {/* THIS IS THE NEW FEES SECTION - IT WILL APPEAR HERE */}
-        <Fees students={students} />
-
+      <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '11px' }}>
+        Developed by EPIC TRIBE RESOURCES INT.
       </div>
     </div>
   );

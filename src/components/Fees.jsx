@@ -19,6 +19,7 @@ export default function Fees({ students }) {
 
   const addFee = async () => {
     if (!studentId || !amount) return alert("Select student and amount");
+    if (Number(amount) <= 0) return alert("Amount must be a positive number.");
     const student = students.find(s => s.id === studentId);
     await addDoc(collection(db, "fees"), {
       studentId,
@@ -46,7 +47,7 @@ export default function Fees({ students }) {
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
         <select value={studentId} onChange={e => setStudentId(e.target.value)} style={{ padding: '8px', borderRadius: '6px' }}>
           <option value="">Select student</option>
-          {students.map(s => <option key={s.id} value={s.id}>{s.name} — {s.roll}</option>)}
+                   {students.map(s => <option key={s.id} value={s.id}>{s.name} — {s.classLevel}</option>)}
         </select>
         <input type="number" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} style={{ padding: '8px', borderRadius: '6px' }} />
         <select value={term} onChange={e => setTerm(e.target.value)} style={{ padding: '8px', borderRadius: '6px' }}>
