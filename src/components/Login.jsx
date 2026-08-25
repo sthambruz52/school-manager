@@ -12,6 +12,23 @@ export default function Login({ onLoginSuccess, initialMode }) {
     const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const isTransientError = (msg) => {
+    const lower = (msg || "").toLowerCase();
+    return lower.includes("database") || lower.includes("indexeddb") || lower.includes("closing");
+  };
+
+  const attemptAuth = async (action, retrying = false) => {
+    try {
+      await action();
+    } catch (err) {
+      if (!retrying && isTransientError(err.message)) {
+        await new Promise((res) => setTimeout(res, 900));
+        return attemptAuth(action, true);
+      }
+      throw err;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -19,18 +36,21 @@ export default function Login({ onLoginSuccess, initialMode }) {
 
     try {
       if (isSignup) {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "users", cred.user.uid), {
-          email,
-          role,
-          status: "active",
-          createdAt: new Date()
+        await attemptAuth(async () => {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await setDoc(doc(db, "users", cred.user.uid), {
+            email,
+            role,
+            status: "active",
+            createdAt: new Date()
+          });
         });
-        if (onLoginSuccess) onLoginSuccess();
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        if (onLoginSuccess) onLoginSuccess();
+        await attemptAuth(async () => {
+          await signInWithEmailAndPassword(auth, email, password);
+        });
       }
+      if (onLoginSuccess) onLoginSuccess();
     } catch (err) {
       setError(err.message.replace("Firebase: ", ""));
     }
