@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 
 const CLOUDINARY_CLOUD_NAME = "tatfep5k";
 const CLOUDINARY_UPLOAD_PRESET = "School Photos";
 
 export default function StaffDirectory({ isAdmin }) {
   const [staff, setStaff] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
@@ -21,6 +22,27 @@ export default function StaffDirectory({ isAdmin }) {
     const q = query(collection(db, "staff"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       setStaff(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "Teacher"));
+    const unsub = onSnapshot(q, (snap) => {
+      setTeachers(
+        snap.docs
+          .filter((d) => d.data().status !== "disabled")
+          .map((d) => ({
+            id: d.id,
+            name: d.data().fullName || "(no name)",
+            title: "Teacher",
+            department: (d.data().subjects || []).join(", "),
+            phone: d.data().phone || "",
+            email: "",
+            photoURL: d.data().photoURL || "",
+            isTeacherAccount: true
+          }))
+      );
     });
     return () => unsub();
   }, []);
@@ -92,6 +114,11 @@ export default function StaffDirectory({ isAdmin }) {
     if (confirm("Remove this staff member?")) await deleteDoc(doc(db, "staff", id));
   };
 
+  const combinedList = [
+    ...staff,
+    ...teachers
+  ].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
   const inputStyle = { padding: "8px", borderRadius: "6px" };
 
   return (
@@ -105,6 +132,9 @@ export default function StaffDirectory({ isAdmin }) {
               Editing {name || "staff member"}
             </p>
           )}
+          <p style={{ textAlign: "center", fontSize: "12px", color: "#999", marginTop: 0 }}>
+            Use this form for staff without a login (e.g. Principal, Bursar). Registered Teachers appear automatically below.
+          </p>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
             {photoURL ? (
@@ -138,10 +168,10 @@ export default function StaffDirectory({ isAdmin }) {
         </div>
       )}
 
-      {staff.length === 0 ? (
+      {combinedList.length === 0 ? (
         <p style={{ textAlign: "center", color: "#666" }}>No staff added yet.</p>
       ) : (
-        staff.map((s) => (
+        combinedList.map((s) => (
           <div key={s.id} style={{ background: "white", padding: "14px", margin: "8px 0", borderRadius: "10px", display: "flex", alignItems: "center", gap: "14px" }}>
             {s.photoURL ? (
               <img src={s.photoURL} alt="" style={{ width: "56px", height: "56px", borderRadius: "50%", objectFit: "cover" }} />
@@ -157,7 +187,7 @@ export default function StaffDirectory({ isAdmin }) {
                 <div style={{ fontSize: "13px", color: "#666" }}>{s.phone} {s.phone && s.email && "·"} {s.email}</div>
               )}
             </div>
-            {isAdmin && (
+            {isAdmin && !s.isTeacherAccount && (
               <div style={{ display: "flex", gap: "6px" }}>
                 <button onClick={() => startEdit(s)} style={{ background: "#1f4d3a", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>Edit</button>
                 <button onClick={() => removeStaff(s.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>x</button>

@@ -5,7 +5,7 @@ import { doc, setDoc, collection, onSnapshot } from "firebase/firestore";
 const CLOUDINARY_CLOUD_NAME = "tatfep5k";
 const CLOUDINARY_UPLOAD_PRESET = "School Photos";
 
-export default function TeacherProfile({ onComplete, existingData }) {
+export default function TeacherProfile({ onComplete, existingData, targetUid }) {
   const [subjects, setSubjects] = useState([]);
   const [fullName, setFullName] = useState(existingData?.fullName || "");
   const [phone, setPhone] = useState(existingData?.phone || "");
@@ -86,8 +86,13 @@ export default function TeacherProfile({ onComplete, existingData }) {
       return;
     }
 
+    if (!/^\d{10,15}$/.test(phone.replace(/\s/g, ""))) {
+      alert("Please enter a valid phone number (10-15 digits, no letters or symbols).");
+      return;
+    }
+
     setSaving(true);
-    await setDoc(doc(db, "users", auth.currentUser.uid), {
+    await setDoc(doc(db, "users", targetUid || auth.currentUser.uid), {
       fullName,
       phone,
       subjects: selectedSubjects,

@@ -3,14 +3,16 @@ import { db } from "../firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import StudentProfile from "./StudentProfile";
 import ParentProfile from "./ParentProfile";
+import TeacherProfile from "./TeacherProfile";
 import { exportToCSV } from "../utils/exportCSV";
 
 export default function AdminStudents({ isAdmin = true }) {
   const [activeTab, setActiveTab] = useState("students");
   const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
@@ -25,41 +27,44 @@ export default function AdminStudents({ isAdmin = true }) {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "Teacher"));
+    const unsub = onSnapshot(q, (snap) => setTeachers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return () => unsub();
+  }, []);
+
   const toggleStatus = async (userId, currentStatus) => {
     const newStatus = currentStatus === "disabled" ? "active" : "disabled";
     if (!confirm(`${newStatus === "disabled" ? "Disable" : "Enable"} this account?`)) return;
     await updateDoc(doc(db, "users", userId), { status: newStatus });
   };
-    const handleExport = () => {
+
+  const handleExport = () => {
     if (activeTab === "students") {
       const headers = ["Full Name", "Class", "Session", "Term", "Subjects", "Parent Name", "Parent Phone", "Parent Email", "Status"];
       const rows = students.map((s) => [
-        s.fullName || "",
-        s.classLevel || "",
-        s.session || "",
-        s.term || "",
-        (s.subjects || []).join("; "),
-        s.parentName || "",
-        s.parentPhone || "",
-        s.parentEmail || "",
-        s.status || "active"
+        s.fullName || "", s.classLevel || "", s.session || "", s.term || "",
+        (s.subjects || []).join("; "), s.parentName || "", s.parentPhone || "", s.parentEmail || "", s.status || "active"
       ]);
       exportToCSV("students.csv", headers, rows);
-    } else {
+    } else if (activeTab === "parents") {
       const headers = ["Full Name", "Phone", "Email", "Children", "Status"];
       const rows = parents.map((p) => [
-        p.fullName || "",
-        p.phone || "",
-        p.email || "",
-        (p.children || []).map((c) => c.name).join("; "),
-        p.status || "active"
+        p.fullName || "", p.phone || "", p.email || "",
+        (p.children || []).map((c) => c.name).join("; "), p.status || "active"
       ]);
       exportToCSV("parents.csv", headers, rows);
+    } else {
+      const headers = ["Full Name", "Phone", "Subjects", "Status"];
+      const rows = teachers.map((t) => [
+        t.fullName || "", t.phone || "", (t.subjects || []).join("; "), t.status || "active"
+      ]);
+      exportToCSV("teachers.csv", headers, rows);
     }
   };
 
   if (editingUser) {
-    const Comp = editingUser.role === "Student" ? StudentProfile : ParentProfile;
+    const Comp = editingUser.role === "Student" ? StudentProfile : editingUser.role === "Teacher" ? TeacherProfile : ParentProfile;
     return (
       <Comp
         existingData={editingUser.data}
@@ -80,13 +85,17 @@ export default function AdminStudents({ isAdmin = true }) {
     fontWeight: "bold"
   });
 
+  const filteredList = (list, nameKey) =>
+    list.filter((item) => (item[nameKey] || "").toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>Students & Parents</h2>
+      <h2 style={{ textAlign: "center" }}>Students, Parents & Teachers</h2>
 
       <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
         <button onClick={() => setActiveTab("students")} style={tabStyle(activeTab === "students")}>Students ({students.length})</button>
         <button onClick={() => setActiveTab("parents")} style={tabStyle(activeTab === "parents")}>Parents ({parents.length})</button>
+        <button onClick={() => setActiveTab("teachers")} style={tabStyle(activeTab === "teachers")}>Teachers ({teachers.length})</button>
         {isAdmin && (
           <button onClick={handleExport} style={{ padding: "8px 16px", borderRadius: "6px", border: "1px solid #1f4d3a", background: "white", color: "#1f4d3a", fontWeight: "bold", cursor: "pointer" }}>
             Export CSV
@@ -102,10 +111,10 @@ export default function AdminStudents({ isAdmin = true }) {
       />
 
       {activeTab === "students" && (
-        students.filter((s) => (s.fullName || "").toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+        filteredList(students, "fullName").length === 0 ? (
           <p style={{ textAlign: "center", color: "#666" }}>No students registered yet.</p>
         ) : (
-          students.filter((s) => (s.fullName || "").toLowerCase().includes(searchTerm.toLowerCase())).map((s) => (
+          filteredList(students, "fullName").map((s) => (
             <div key={s.id} style={cardStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
                 {s.photoURL ? (
@@ -150,10 +159,10 @@ export default function AdminStudents({ isAdmin = true }) {
       )}
 
       {activeTab === "parents" && (
-        parents.filter((p) => (p.fullName || "").toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+        filteredList(parents, "fullName").length === 0 ? (
           <p style={{ textAlign: "center", color: "#666" }}>No parents registered yet.</p>
         ) : (
-          parents.filter((p) => (p.fullName || "").toLowerCase().includes(searchTerm.toLowerCase())).map((p) => (
+          filteredList(parents, "fullName").map((p) => (
             <div key={p.id} style={cardStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
                 <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
@@ -174,12 +183,57 @@ export default function AdminStudents({ isAdmin = true }) {
                   <div><strong>Email:</strong> {p.email || "—"}</div>
                   <div><strong>Ward(s):</strong> {p.children?.length ? p.children.map(c => c.name).join(", ") : "—"}</div>
 
-                  <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                    <button onClick={() => setEditingUser({ uid: p.id, role: "Parent", data: p })} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>Edit</button>
-                    <button onClick={() => toggleStatus(p.id, p.status)} style={{ background: p.status === "disabled" ? "#1f4d3a" : "#c2704e", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>
-                      {p.status === "disabled" ? "Enable Account" : "Disable Account"}
-                    </button>
+                  {isAdmin && (
+                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                      <button onClick={() => setEditingUser({ uid: p.id, role: "Parent", data: p })} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>Edit</button>
+                      <button onClick={() => toggleStatus(p.id, p.status)} style={{ background: p.status === "disabled" ? "#1f4d3a" : "#c2704e", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>
+                        {p.status === "disabled" ? "Enable Account" : "Disable Account"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )
+      )}
+
+      {activeTab === "teachers" && (
+        filteredList(teachers, "fullName").length === 0 ? (
+          <p style={{ textAlign: "center", color: "#666" }}>No teachers registered yet.</p>
+        ) : (
+          filteredList(teachers, "fullName").map((t) => (
+            <div key={t.id} style={cardStyle}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}>
+                {t.photoURL ? (
+                  <img src={t.photoURL} alt="" style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
+                    {t.fullName?.charAt(0).toUpperCase() || "?"}
                   </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: "bold" }}>{t.fullName || "(no name)"}</div>
+                  <div style={{ fontSize: "13px", color: "#666" }}>{t.subjects?.length ? t.subjects.join(", ") : "No subjects set"}</div>
+                </div>
+                {t.status === "disabled" && (
+                  <span style={{ background: "#c2704e", color: "white", fontSize: "11px", padding: "2px 8px", borderRadius: "10px" }}>Disabled</span>
+                )}
+              </div>
+
+              {expandedId === t.id && (
+                <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee", fontSize: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div><strong>Phone:</strong> {t.phone || "—"}</div>
+                  <div><strong>Address:</strong> {[t.address?.street, t.address?.lga, t.address?.city, t.address?.state, t.address?.country].filter(Boolean).join(", ") || "—"}</div>
+
+                  {isAdmin && (
+                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                      <button onClick={() => setEditingUser({ uid: t.id, role: "Teacher", data: t })} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>Edit</button>
+                      <button onClick={() => toggleStatus(t.id, t.status)} style={{ background: t.status === "disabled" ? "#1f4d3a" : "#c2704e", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>
+                        {t.status === "disabled" ? "Enable Account" : "Disable Account"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
