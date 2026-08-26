@@ -80,6 +80,16 @@ export default function Assignments({ canManage, studentView }) {
     setScoreDrafts(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }))
   }
 
+  const toggleSubmitted = async (assignmentId, studentId) => {
+    const key = `${assignmentId}_${studentId}`
+    const existing = scoreFor(assignmentId, studentId)
+    await setDoc(doc(db, 'assignmentScores', key), {
+      assignmentId, studentId,
+      submitted: !(existing?.submitted),
+      updatedAt: new Date()
+    }, { merge: true })
+  }
+
   const saveScoreFor = async (assignmentId, studentId) => {
     const key = `${assignmentId}_${studentId}`
     const draft = scoreDrafts[key] || {}
@@ -90,7 +100,7 @@ export default function Assignments({ canManage, studentView }) {
     if (Number(score) > Number(maxScore)) return alert('Score cannot exceed max score.')
     await setDoc(doc(db, 'assignmentScores', key), {
       assignmentId, studentId, score: Number(score), maxScore: Number(maxScore), gradedAt: new Date()
-    })
+    }, { merge: true })
   }
 
   const inputStyle = { padding: '8px', borderRadius: '6px' }
@@ -113,8 +123,22 @@ export default function Assignments({ canManage, studentView }) {
                 </div>
                 {a.description && <p style={{ fontSize: '13px', color: '#666', margin: '6px 0' }}>{a.description}</p>}
                 {a.dueDate && <p style={{ fontSize: '12px', color: '#c2704e', margin: 0 }}>Due: {a.dueDate}</p>}
-                <div style={{ marginTop: '6px', fontSize: '13px' }}>
-                  {mine ? <span style={{ color: '#1f4d3a', fontWeight: 'bold' }}>Score: {mine.score}/{mine.maxScore}</span> : <span style={{ color: '#999' }}>Not graded yet</span>}
+                <div style={{ marginTop: '8px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13px' }}>
+                  <span style={{
+                    background: mine?.submitted ? '#1f4d3a' : '#c2704e',
+                    color: 'white',
+                    padding: '2px 10px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {mine?.submitted ? 'Submitted' : 'Not Submitted'}
+                  </span>
+                  {mine?.score !== undefined ? (
+                    <span style={{ color: '#1f4d3a', fontWeight: 'bold' }}>Score: {mine.score}/{mine.maxScore}</span>
+                  ) : (
+                    <span style={{ color: '#999' }}>Not graded yet</span>
+                  )}
                 </div>
               </div>
             )
@@ -173,8 +197,22 @@ export default function Assignments({ canManage, studentView }) {
                     const key = `${a.id}_${s.id}`
                     const draft = scoreDrafts[key] || {}
                     return (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderBottom: '1px solid #f4f0e6' }}>
-                        <span style={{ flex: 1, fontSize: '14px' }}>{s.fullName}</span>
+                      <div key={s.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '1px solid #f4f0e6' }}>
+                        <span style={{ flex: 1, minWidth: '100px', fontSize: '14px' }}>{s.fullName}</span>
+                        <button
+                          onClick={() => toggleSubmitted(a.id, s.id)}
+                          style={{
+                            background: existing?.submitted ? '#1f4d3a' : '#c2704e',
+                            color: 'white',
+                            border: 'none',
+                            padding: '5px 10px',
+                            borderRadius: '10px',
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {existing?.submitted ? 'Submitted' : 'Not Submitted'}
+                        </button>
                         <input
                           type="number"
                           value={draft.score !== undefined ? draft.score : existing?.score ?? ''}
@@ -193,7 +231,7 @@ export default function Assignments({ canManage, studentView }) {
                           onClick={() => saveScoreFor(a.id, s.id)}
                           style={{ background: '#1f4d3a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '12px' }}
                         >
-                          Save
+                          Save Score
                         </button>
                       </div>
                     )
