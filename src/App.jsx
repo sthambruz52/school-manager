@@ -24,6 +24,7 @@ import ReportCard from "./components/ReportCard";
 import NoticeBoard from "./components/NoticeBoard";
 import ContactUs from "./components/ContactUs";
 import MySubjects from "./components/MySubjects";
+import Classes from "./components/Classes";
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState("");
@@ -211,7 +212,11 @@ function App() {
           </span>
         </div>
       )}
-
+      {activeView === "classes" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <Classes isAdmin={userRole === "Admin"} />
+        </div>
+      )}
       {userRole === "Student" && userData && activeView === "dashboard" && <StudentDashboard userData={userData} />}
       {userRole === "Parent" && userData && activeView === "dashboard" && <ParentDashboard userData={userData} />}
 
@@ -298,6 +303,7 @@ function App() {
           {activeView === "gallery" && <Gallery isAdmin={userRole === "Admin"} />}
 
           {activeView === "activities" && <Activities isAdmin={userRole === "Admin"} />}
+                    
                     {activeView === "noticeboard" && <NoticeBoard isAdmin={userRole === "Admin"} />}
           {activeView === "schoolinfo" && userRole === "Admin" && <SchoolInfo />}
                     {activeView === "reportcard" && (userRole === "Admin" || userRole === "Teacher") && (

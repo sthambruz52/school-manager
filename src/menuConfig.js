@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -15,7 +15,8 @@ export const ICONS = {
     reportcard: FileText,
       noticeboard: Megaphone,
         contactus: Phone,
-        mysubjects: Notebook
+                mysubjects: Notebook,
+  classes: LayoutGrid,
 };
 
 export const MENU_GROUPS = {
@@ -25,9 +26,10 @@ export const MENU_GROUPS = {
       { key: "grades", label: "Grades" },
       { key: "subjects", label: "Subjects" },
       { key: "classteachers", label: "Class Teachers" },
-            { key: "reportcard", label: "Report Card" },
-                  { key: "noticeboard", label: "Notice Board" },
-                  { key: "contactus", label: "Contact Us" }
+      { key: "classes", label: "Classes" },
+      { key: "reportcard", label: "Report Card" },
+      { key: "noticeboard", label: "Notice Board" },
+      { key: "contactus", label: "Contact Us" }
     ]},
     { group: "Accounts", items: [
       { key: "adminstudents", label: "Students & Parents" },
@@ -43,14 +45,15 @@ export const MENU_GROUPS = {
     ]},
   ],
   
-  Teacher: [
+    Teacher: [
     { group: "Academics", items: [
       { key: "rollcall", label: "Roll Call" },
       { key: "grades", label: "Grades" },
       { key: "subjects", label: "Subjects" },
+      { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
-            { key: "noticeboard", label: "Notice Board" },
-            { key: "contactus", label: "Contact Us" }
+      { key: "noticeboard", label: "Notice Board" },
+      { key: "contactus", label: "Contact Us" }
     ]},
     { group: "Accounts", items: [
       { key: "adminstudents", label: "Students & Parents" },
@@ -64,10 +67,11 @@ export const MENU_GROUPS = {
   Student: [
     { group: "My Space", items: [
       { key: "dashboard", label: "My Dashboard" },
-            { key: "reportcard", label: "Report Card" },
-                  { key: "noticeboard", label: "Notice Board" },
-                  { key: "contactus", label: "Contact Us" },
-                  { key: "mysubjects", label: "My Subjects" }
+      { key: "classes", label: "Classes" },
+      { key: "reportcard", label: "Report Card" },
+      { key: "noticeboard", label: "Notice Board" },
+      { key: "contactus", label: "Contact Us" },
+      { key: "mysubjects", label: "My Subjects" }
     ]},
     { group: "School Life", items: [
       { key: "staff", label: "Staff & Management" },
@@ -78,9 +82,10 @@ export const MENU_GROUPS = {
   Parent: [
     { group: "My Space", items: [
       { key: "dashboard", label: "My Dashboard" },
-            { key: "reportcard", label: "Report Card" },
-                  { key: "noticeboard", label: "Notice Board" },
-                  { key: "contactus", label: "Contact Us" }
+      { key: "classes", label: "Classes" },
+      { key: "reportcard", label: "Report Card" },
+      { key: "noticeboard", label: "Notice Board" },
+      { key: "contactus", label: "Contact Us" }
     ]},
     { group: "School Life", items: [
       { key: "staff", label: "Staff & Management" },
