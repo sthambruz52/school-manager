@@ -25,7 +25,7 @@ export default function Assignments({ canManage, studentView }) {
 
   const [expandedId, setExpandedId] = useState(null)
   const [scoreDrafts, setScoreDrafts] = useState({})
-
+  const [savedFlash, setSavedFlash] = useState(null)
   const isManualClass = classSelect === OTHER_VALUE
   const classFinal = isManualClass ? manualClass.trim() : classSelect
 
@@ -101,6 +101,8 @@ export default function Assignments({ canManage, studentView }) {
     await setDoc(doc(db, 'assignmentScores', key), {
       assignmentId, studentId, score: Number(score), maxScore: Number(maxScore), gradedAt: new Date()
     }, { merge: true })
+    setSavedFlash(key)
+    setTimeout(() => setSavedFlash(null), 1500)
   }
 
   const inputStyle = { padding: '8px', borderRadius: '6px' }
@@ -231,7 +233,7 @@ export default function Assignments({ canManage, studentView }) {
                           onClick={() => saveScoreFor(a.id, s.id)}
                           style={{ background: '#1f4d3a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '12px' }}
                         >
-                          Save Score
+                          {savedFlash === key ? '✓ Saved!' : 'Save Score'}
                         </button>
                       </div>
                     )
