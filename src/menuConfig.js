@@ -89,6 +89,7 @@ export const MENU_GROUPS = {
   Parent: [
     { group: "My Space", items: [
       { key: "dashboard", label: "My Dashboard" },
+            { key: "assignments", label: "Assignments" },
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
       { key: "noticeboard", label: "Notice Board" },

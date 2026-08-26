@@ -256,6 +256,20 @@ function App() {
           )}
         </div>
       )}
+            {userRole === "Parent" && userData && activeView === "assignments" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          {(userData.children || []).length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#666' }}>No ward linked yet.</p>
+          ) : (
+            userData.children.map((child) => (
+              <div key={child.uid} style={{ marginBottom: '20px' }}>
+                <h3 style={{ textAlign: 'center', color: '#1f4d3a' }}>{child.name}</h3>
+                <Assignments studentView={{ studentId: child.uid, classLevel: child.classLevel }} />
+              </div>
+            ))
+          )}
+        </div>
+      )}
             {(userRole === "Student" || userRole === "Parent") && activeView === "noticeboard" && (
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
           <NoticeBoard isAdmin={false} />
