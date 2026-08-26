@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -17,6 +17,8 @@ export const ICONS = {
         contactus: Phone,
                 mysubjects: Notebook,
   classes: LayoutGrid,
+  periodictest: ListChecks,
+  assignments: ClipboardCheck,
 };
 
 export const MENU_GROUPS = {
@@ -24,6 +26,8 @@ export const MENU_GROUPS = {
     { group: "Academics", items: [
       { key: "rollcall", label: "Roll Call" },
       { key: "grades", label: "Grades" },
+      { key: "periodictest", label: "Periodic Test" },
+      { key: "assignments", label: "Assignments" },
       { key: "subjects", label: "Subjects" },
       { key: "classteachers", label: "Class Teachers" },
       { key: "classes", label: "Classes" },
@@ -40,15 +44,17 @@ export const MENU_GROUPS = {
       { key: "gallery", label: "Gallery" },
       { key: "activities", label: "School Activities" },
     ]},
-        { group: "Settings", items: [
+    { group: "Settings", items: [
       { key: "schoolinfo", label: "School Info" },
     ]},
   ],
-  
-    Teacher: [
+
+  Teacher: [
     { group: "Academics", items: [
       { key: "rollcall", label: "Roll Call" },
       { key: "grades", label: "Grades" },
+      { key: "periodictest", label: "Periodic Test" },
+      { key: "assignments", label: "Assignments" },
       { key: "subjects", label: "Subjects" },
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
@@ -67,6 +73,7 @@ export const MENU_GROUPS = {
   Student: [
     { group: "My Space", items: [
       { key: "dashboard", label: "My Dashboard" },
+      { key: "assignments", label: "Assignments" },
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
       { key: "noticeboard", label: "Notice Board" },

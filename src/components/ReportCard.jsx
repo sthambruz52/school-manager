@@ -88,8 +88,23 @@ export default function ReportCard({ isAdmin, fixedStudentId, fixedStudentName }
     setSavingRemark(false);
   };
 
-  const average = grades.length > 0
-    ? Math.round(grades.reduce((sum, g) => sum + (g.score / g.maxScore) * 100, 0) / grades.length)
+  // Group grades by subject, combining Exam + Test 1/2/3 into one subject total
+  const subjectGroups = {};
+  grades.forEach((g) => {
+    if (!g.subject || !g.maxScore) return;
+    if (!subjectGroups[g.subject]) subjectGroups[g.subject] = [];
+    subjectGroups[g.subject].push(g);
+  });
+
+  const subjectSummaries = Object.entries(subjectGroups).map(([subject, entries]) => {
+    const totalScore = entries.reduce((sum, e) => sum + Number(e.score), 0);
+    const totalMax = entries.reduce((sum, e) => sum + Number(e.maxScore), 0);
+    const pct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+    return { subject, entries, totalScore, totalMax, pct };
+  });
+
+  const average = subjectSummaries.length > 0
+    ? Math.round(subjectSummaries.reduce((sum, s) => sum + s.pct, 0) / subjectSummaries.length)
     : 0;
 
   const presentCount = attendance.filter((a) => a.status === 'Present').length;
@@ -144,21 +159,28 @@ export default function ReportCard({ isAdmin, fixedStudentId, fixedStudentName }
           </div>
 
           <h4>Grades</h4>
-          {grades.length === 0 ? (
+          {subjectSummaries.length === 0 ? (
             <p style={{ color: '#666' }}>No grades recorded for this period.</p>
           ) : (
             <>
-              {grades.map((g) => {
-                const pct = g.maxScore ? Math.round((g.score / g.maxScore) * 100) : 0;
-                return (
-                  <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}>
-                    <span>{g.subject}</span>
-                    <span>{g.score}/{g.maxScore} ({pct}%) — {gradeLetter(pct)}</span>
+              {subjectSummaries.map((s) => (
+                <div key={s.subject} style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                    <span>{s.subject}</span>
+                    <span style={{ color: s.pct >= 60 ? '#1f4d3a' : '#c2704e' }}>
+                      {s.totalScore}/{s.totalMax} ({s.pct}%) — {gradeLetter(s.pct)}
+                    </span>
                   </div>
-                );
-              })}
+                  {s.entries.map((e) => (
+                    <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#888', paddingLeft: '10px' }}>
+                      <span>{e.testType || 'Exam'}</span>
+                      <span>{e.score}/{e.maxScore}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontWeight: 'bold' }}>
-                <span>Average</span>
+                <span>Overall Average</span>
                 <span>{average}% — {gradeLetter(average)}</span>
               </div>
             </>

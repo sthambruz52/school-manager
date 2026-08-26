@@ -25,6 +25,8 @@ import NoticeBoard from "./components/NoticeBoard";
 import ContactUs from "./components/ContactUs";
 import MySubjects from "./components/MySubjects";
 import Classes from "./components/Classes";
+import PeriodicTest from "./components/PeriodicTest";
+import Assignments from "./components/Assignments";
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState("");
@@ -230,6 +232,9 @@ function App() {
           <Gallery isAdmin={false} />
         </div>
       )}
+            {userRole === "Student" && userData && activeView === "assignments" && (
+        <Assignments studentView={{ studentId: user.uid, classLevel: userData.classLevel }} />
+      )}
             {userRole === "Student" && userData && activeView === "reportcard" && (
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
           <ReportCard isAdmin={false} fixedStudentId={user.uid} fixedStudentName={userData.fullName} />
@@ -308,6 +313,13 @@ function App() {
           {activeView === "schoolinfo" && userRole === "Admin" && <SchoolInfo />}
                     {activeView === "reportcard" && (userRole === "Admin" || userRole === "Teacher") && (
             <ReportCard isAdmin={true} />
+          )}
+                    {activeView === "periodictest" && (userRole === "Admin" || userRole === "Teacher") && (
+            <PeriodicTest />
+          )}
+
+          {activeView === "assignments" && (userRole === "Admin" || userRole === "Teacher") && (
+            <Assignments canManage={true} />
           )}
           {activeView === "contactus" && (
             <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>

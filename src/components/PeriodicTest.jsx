@@ -9,10 +9,10 @@ const CLASS_LEVELS = [
 ]
 
 const TERMS = ["First Term", "Second Term", "Third Term"]
-const TEST_TYPES = ["Exam", "Test 1", "Test 2", "Test 3"]
+const TEST_TYPES = ["Test 1", "Test 2", "Test 3"]
 const OTHER_VALUE = "__OTHER__"
 
-function Grades() {
+export default function PeriodicTest() {
   const [students, setStudents] = useState([])
   const [grades, setGrades] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -23,10 +23,10 @@ function Grades() {
   const [searchTerm, setSearchTerm] = useState('')
   const [studentId, setStudentId] = useState('')
   const [subject, setSubject] = useState('')
-  const [testTypeSelect, setTestTypeSelect] = useState('Exam')
+  const [testTypeSelect, setTestTypeSelect] = useState('Test 1')
   const [manualTestType, setManualTestType] = useState('')
   const [score, setScore] = useState('')
-  const [maxScore, setMaxScore] = useState('100')
+  const [maxScore, setMaxScore] = useState('20')
 
   const isManualClass = classSelect === OTHER_VALUE
   const classFilter = isManualClass ? manualClass.trim() : classSelect
@@ -36,24 +36,21 @@ function Grades() {
   useEffect(() => {
     const q = query(collection(db, 'users'), where('role', '==', 'Student'))
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      setStudents(data)
+      setStudents(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
     })
     return () => unsubscribe()
   }, [])
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'grades'), (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      setGrades(data)
+      setGrades(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
     })
     return () => unsubscribe()
   }, [])
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'subjects'), (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      setSubjects(data)
+      setSubjects(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
     })
     return () => unsubscribe()
   }, [])
@@ -64,7 +61,7 @@ function Grades() {
     return true
   })
 
-  async function handleAddGrade() {
+  async function handleAddTest() {
     if (!studentId || !subject || !score) {
       alert(`Missing: ${!studentId ? "student " : ""}${!subject ? "subject " : ""}${!score ? "score" : ""}`)
       return
@@ -98,7 +95,6 @@ function Grades() {
     })
 
     setScore('')
-    setMaxScore('100')
   }
 
   function studentName(id) {
@@ -106,7 +102,8 @@ function Grades() {
     return s ? s.fullName : 'Unknown student'
   }
 
-  const visibleGrades = grades.filter((g) => {
+  const visibleTests = grades.filter((g) => {
+    if (!g.testType || g.testType === 'Exam') return false
     if (classFilter && g.classLevel !== classFilter) return false
     if (termFilter && g.term !== termFilter) return false
     return true
@@ -116,7 +113,10 @@ function Grades() {
 
   return (
     <div style={{ marginTop: '40px' }}>
-      <h2 style={{ textAlign: 'center' }}>Grades</h2>
+      <h2 style={{ textAlign: 'center' }}>Periodic Test</h2>
+      <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', marginTop: '-10px' }}>
+        For Test 1, 2, 3 scores — main Exam scores are entered in Grades.
+      </p>
 
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
         <select value={classSelect} onChange={(e) => { setClassSelect(e.target.value); setStudentId('') }} style={inputStyle}>
@@ -198,30 +198,26 @@ function Grades() {
           onChange={(e) => setMaxScore(e.target.value)}
           style={{ ...inputStyle, width: '70px' }}
         />
-        <button onClick={handleAddGrade} style={{ background: '#1f4d3a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none' }}>
-          Add Grade
+        <button onClick={handleAddTest} style={{ background: '#1f4d3a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none' }}>
+          Add Test Score
         </button>
       </div>
 
-      {visibleGrades.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#666' }}>No grades recorded yet.</p>
+      {visibleTests.length === 0 ? (
+        <p style={{ textAlign: 'center', color: '#666' }}>No periodic test scores recorded yet.</p>
       ) : (
-        visibleGrades
-          .filter((g) => g.studentId && g.maxScore)
-          .map((g) => {
-            const pct = g.maxScore ? Math.round((g.score / g.maxScore) * 100) : 0
-            return (
-              <div key={g.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                <span>{studentName(g.studentId)} — {g.subject} <span style={{ color: '#888', fontSize: '12px' }}>({g.testType || 'Exam'})</span></span>
-                <span style={{ color: pct >= 60 ? '#1f4d3a' : '#c2704e', fontWeight: 'bold' }}>
-                  {g.score}/{g.maxScore} ({pct}%)
-                </span>
-              </div>
-            )
-          })
+        visibleTests.map((g) => {
+          const pct = g.maxScore ? Math.round((g.score / g.maxScore) * 100) : 0
+          return (
+            <div key={g.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+              <span>{studentName(g.studentId)} — {g.subject} <span style={{ color: '#888', fontSize: '12px' }}>({g.testType})</span></span>
+              <span style={{ color: pct >= 60 ? '#1f4d3a' : '#c2704e', fontWeight: 'bold' }}>
+                {g.score}/{g.maxScore} ({pct}%)
+              </span>
+            </div>
+          )
+        })
       )}
     </div>
   )
 }
-
-export default Grades
