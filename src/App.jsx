@@ -36,6 +36,7 @@ function App() {
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [students, setStudents] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+    const [openRollCallClass, setOpenRollCallClass] = useState(null);
   const [activeView, setActiveView] = useState("");
 
   useEffect(() => {
@@ -293,15 +294,34 @@ function App() {
             <>
               <h2 style={{ textAlign: 'center' }}>Roll Call</h2>
               <p style={{ textAlign: 'center', color: '#666' }}>{presentCount}/{students.length} present today</p>
-                        {students.map(s => (
-            <div key={s.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-              <span style={{ flex: '1 1 140px' }}>{s.name} — {s.classLevel}</span>
-              <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
-                <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
-                <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
-              </div>
-            </div>
-          ))}
+              {[...new Set(students.map(s => s.classLevel).filter(Boolean))].sort().map(cls => {
+                const classStudents = students.filter(s => s.classLevel === cls);
+                const classPresent = classStudents.filter(s => s.present).length;
+                return (
+                  <div key={cls} style={{ background: 'white', borderRadius: '10px', margin: '10px 0', overflow: 'hidden' }}>
+                    <div
+                      onClick={() => setOpenRollCallClass(openRollCallClass === cls ? null : cls)}
+                      style={{ padding: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', color: '#1f4d3a' }}
+                    >
+                      <span>{cls}</span>
+                      <span style={{ fontSize: '13px', color: '#666', fontWeight: 'normal' }}>{classPresent}/{classStudents.length} present</span>
+                    </div>
+                    {openRollCallClass === cls && (
+                      <div style={{ borderTop: '1px solid #eee' }}>
+                        {classStudents.map(s => (
+                          <div key={s.id} style={{ padding: '10px 14px', borderBottom: '1px solid #f4f0e6', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ flex: '1 1 100px' }}>{s.name}</span>
+                            <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                              <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
+                              <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </>
           )}
 
