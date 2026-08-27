@@ -293,15 +293,15 @@ function App() {
             <>
               <h2 style={{ textAlign: 'center' }}>Roll Call</h2>
               <p style={{ textAlign: 'center', color: '#666' }}>{presentCount}/{students.length} present today</p>
-              {students.map(s => (
-                <div key={s.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{s.name} — {s.classLevel}</span>
-                  <div>
-                    <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', marginRight: '5px', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
-                    <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
-                  </div>
-                </div>
-              ))}
+                        {students.map(s => (
+            <div key={s.id} style={{ background: 'white', padding: '12px', margin: '8px 0', borderRadius: '8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              <span style={{ flex: '1 1 140px' }}>{s.name} — {s.classLevel}</span>
+              <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
+                <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
+              </div>
+            </div>
+          ))}
             </>
           )}
 
