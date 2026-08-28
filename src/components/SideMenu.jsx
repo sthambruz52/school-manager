@@ -1,7 +1,21 @@
 import { MENU_GROUPS, ICONS } from "../menuConfig";
 import { Home as HomeIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { db, auth } from "../firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 export default function SideMenu({ role, activeView, setActiveView, userData, userEmail, hasProfile, onProfile, onLogout, isOpen, setIsOpen }) {
   const groups = MENU_GROUPS[role] || [];
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (role === "Admin") return;
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const unsub = onSnapshot(doc(db, "supportChats", uid), (docSnap) => {
+      setHasUnread(docSnap.exists() && docSnap.data().unreadByUser === true);
+    });
+    return () => unsub();
+  }, [role]);
 
   const handleSelect = (key) => {
     setActiveView(key);
@@ -89,6 +103,9 @@ export default function SideMenu({ role, activeView, setActiveView, userData, us
                     }}
                   >
                     {IconComponent && <IconComponent size={18} />} {item.label}
+                    {item.key === "supportchat" && hasUnread && (
+                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#c2704e", marginLeft: "auto" }} />
+                    )}
                   </div>
                 );
               })}

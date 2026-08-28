@@ -39,6 +39,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
     const [openRollCallClass, setOpenRollCallClass] = useState(null);
   const [activeView, setActiveView] = useState("");
+  const [chatAlertShown, setChatAlertShown] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
@@ -95,7 +96,26 @@ function App() {
       setActiveView("home");
     }
   }, [userRole, activeView]);
+  useEffect(() => {
+    if (!user || userRole === "Admin") return;
+    const unsub = onSnapshot(doc(db, "supportChats", user.uid), (docSnap) => {
+      const unread = docSnap.exists() && docSnap.data().unreadByUser === true;
+      if (unread && !chatAlertShown && activeView !== "supportchat") {
+        setChatAlertShown(true);
+        if (Notification.permission === "granted") {
+          new Notification("New message from Admin", { body: docSnap.data().lastMessage || "" });
+        }
+      }
+      if (!unread) setChatAlertShown(false);
+    });
+    return () => unsub();
+  }, [user, userRole, activeView, chatAlertShown]);
 
+  useEffect(() => {
+    if (user && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, [user]);
   const togglePresent = async (student) => {
     const newPresent = !student.present;
     await updateDoc(doc(db, "users", student.id), { present: newPresent });
