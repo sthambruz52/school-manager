@@ -112,6 +112,21 @@ function App() {
   }, [user, userRole, activeView, chatAlertShown]);
 
   useEffect(() => {
+    if (!user || userRole !== "Admin") return;
+    const unsub = onSnapshot(collection(db, "supportChats"), (snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type === "modified" || change.type === "added") {
+          const data = change.doc.data();
+          if (data.unreadByAdmin && activeView !== "supportchat" && Notification.permission === "granted") {
+            new Notification(`New message from ${data.userName || "a user"}`, { body: data.lastMessage || "" });
+          }
+        }
+      });
+    });
+    return () => unsub();
+  }, [user, userRole, activeView]);
+
+  useEffect(() => {
     if (user && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
