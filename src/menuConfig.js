@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -18,7 +18,8 @@ export const ICONS = {
                 mysubjects: Notebook,
   classes: LayoutGrid,
   periodictest: ListChecks,
-  assignments: ClipboardCheck,
+    assignments: ClipboardCheck,
+  supportchat: MessageCircle,
 };
 
 export const MENU_GROUPS = {
@@ -47,9 +48,12 @@ export const MENU_GROUPS = {
     { group: "Settings", items: [
       { key: "schoolinfo", label: "School Info" },
     ]},
+    { group: "Support", items: [
+      { key: "supportchat", label: "Support Chat" },
+    ]},
   ],
 
-  Teacher: [
+    Teacher: [
     { group: "Academics", items: [
       { key: "rollcall", label: "Roll Call" },
       { key: "grades", label: "Grades" },
@@ -69,6 +73,9 @@ export const MENU_GROUPS = {
       { key: "gallery", label: "Gallery" },
       { key: "activities", label: "School Activities" },
     ]},
+    { group: "Support", items: [
+      { key: "supportchat", label: "Support Chat" },
+    ]},
   ],
   Student: [
     { group: "My Space", items: [
@@ -85,11 +92,14 @@ export const MENU_GROUPS = {
       { key: "gallery", label: "Gallery" },
       { key: "activities", label: "School Activities" },
     ]},
+    { group: "Support", items: [
+      { key: "supportchat", label: "Support Chat" },
+    ]},
   ],
   Parent: [
     { group: "My Space", items: [
       { key: "dashboard", label: "My Dashboard" },
-            { key: "assignments", label: "Assignments" },
+      { key: "assignments", label: "Assignments" },
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
       { key: "noticeboard", label: "Notice Board" },
@@ -99,6 +109,9 @@ export const MENU_GROUPS = {
       { key: "staff", label: "Staff & Management" },
       { key: "gallery", label: "Gallery" },
       { key: "activities", label: "School Activities" },
+    ]},
+    { group: "Support", items: [
+      { key: "supportchat", label: "Support Chat" },
     ]},
   ],
 };

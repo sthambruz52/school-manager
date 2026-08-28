@@ -27,6 +27,7 @@ import MySubjects from "./components/MySubjects";
 import Classes from "./components/Classes";
 import PeriodicTest from "./components/PeriodicTest";
 import Assignments from "./components/Assignments";
+import SupportChat from "./components/SupportChat";
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState("");
@@ -213,6 +214,11 @@ function App() {
           >
             ← Back to Home
           </span>
+        </div>
+      )}
+            {activeView === "supportchat" && (
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
+          <SupportChat isAdmin={userRole === "Admin"} userName={userData?.fullName || user.email} userRole={userRole} />
         </div>
       )}
       {activeView === "classes" && (
