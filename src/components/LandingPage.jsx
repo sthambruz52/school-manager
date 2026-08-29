@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { doc, onSnapshot, collection, query, where, orderBy, limit, onSnapshot as onSnap } from "firebase/firestore";
 import { GraduationCap, Users, BookOpen, ShieldCheck, Heart, Award, MapPin, Phone, Mail, Clock, ArrowRight, Trophy, Briefcase, UserPlus, FileEdit, ClipboardCheck, Rocket, ChevronDown, ChevronUp } from "lucide-react";
 import Login from "./Login";
-
+import PublicChatWidget from "./PublicChatWidget";
 export default function LandingPage() {
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [contactInfo, setContactInfo] = useState(null);
@@ -364,6 +364,8 @@ export default function LandingPage() {
       <div style={{ textAlign: "center", padding: "20px", color: "#999", fontSize: "12px", borderTop: "1px solid #eee" }}>
         Developed by EPIC TRIBE RESOURCES INT.
       </div>
+
+      <PublicChatWidget />
     </div>
   );
 }
