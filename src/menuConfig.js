@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -19,7 +19,8 @@ export const ICONS = {
   classes: LayoutGrid,
   periodictest: ListChecks,
     assignments: ClipboardCheck,
-  supportchat: MessageCircle,
+    supportchat: MessageCircle,
+  accountsettings: Settings,
 };
 
 export const MENU_GROUPS = {
@@ -53,7 +54,7 @@ export const MENU_GROUPS = {
     ]},
   ],
 
-    Teacher: [
+      Teacher: [
     { group: "Academics", items: [
       { key: "rollcall", label: "Roll Call" },
       { key: "grades", label: "Grades" },
@@ -75,6 +76,7 @@ export const MENU_GROUPS = {
     ]},
     { group: "Support", items: [
       { key: "supportchat", label: "Support Chat" },
+      { key: "accountsettings", label: "Account Settings" },
     ]},
   ],
   Student: [
@@ -94,6 +96,7 @@ export const MENU_GROUPS = {
     ]},
     { group: "Support", items: [
       { key: "supportchat", label: "Support Chat" },
+      { key: "accountsettings", label: "Account Settings" },
     ]},
   ],
   Parent: [
@@ -112,6 +115,7 @@ export const MENU_GROUPS = {
     ]},
     { group: "Support", items: [
       { key: "supportchat", label: "Support Chat" },
+      { key: "accountsettings", label: "Account Settings" },
     ]},
   ],
 };

@@ -28,6 +28,7 @@ import Classes from "./components/Classes";
 import PeriodicTest from "./components/PeriodicTest";
 import Assignments from "./components/Assignments";
 import SupportChat from "./components/SupportChat";
+import AccountSettings from "./components/AccountSettings";
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState("");
@@ -102,14 +103,14 @@ function App() {
       const unread = docSnap.exists() && docSnap.data().unreadByUser === true;
       if (unread && !chatAlertShown && activeView !== "supportchat") {
         setChatAlertShown(true);
-        if (Notification.permission === "granted") {
+        if (Notification.permission === "granted" && userData?.notificationsEnabled !== false) {
           new Notification("New message from Admin", { body: docSnap.data().lastMessage || "" });
         }
       }
       if (!unread) setChatAlertShown(false);
     });
     return () => unsub();
-  }, [user, userRole, activeView, chatAlertShown]);
+  }, [user, userRole, activeView, chatAlertShown, userData]);
 
   useEffect(() => {
     if (!user || userRole !== "Admin") return;
@@ -117,14 +118,14 @@ function App() {
       snap.docChanges().forEach((change) => {
         if (change.type === "modified" || change.type === "added") {
           const data = change.doc.data();
-          if (data.unreadByAdmin && activeView !== "supportchat" && Notification.permission === "granted") {
+          if (data.unreadByAdmin && activeView !== "supportchat" && Notification.permission === "granted" && userData?.notificationsEnabled !== false) {
             new Notification(`New message from ${data.userName || "a user"}`, { body: data.lastMessage || "" });
           }
         }
       });
     });
     return () => unsub();
-  }, [user, userRole, activeView]);
+  }, [user, userRole, activeView, userData]);
 
   useEffect(() => {
     if (user && "Notification" in window && Notification.permission === "default") {
@@ -255,6 +256,9 @@ function App() {
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
           <SupportChat isAdmin={userRole === "Admin"} userName={userData?.fullName || user.email} userRole={userRole} />
         </div>
+      )}
+            {activeView === "accountsettings" && (
+        <AccountSettings userData={userData} />
       )}
       {activeView === "classes" && (
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
