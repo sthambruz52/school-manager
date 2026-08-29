@@ -3,10 +3,18 @@ import { db } from "../firebase";
 import { collection, addDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
 
 const FEE_TYPES = ["School Fees", "Exam Fees", "PTA Fees", "Other"];
+const CLASS_LEVELS = [
+  "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+  "JSS1", "JSS2", "JSS3",
+  "SS1", "SS2", "SS3"
+];
 const OTHER_VALUE = "__OTHER__";
+const OTHER_CLASS_VALUE = "__OTHER_CLASS__";
 
 export default function Fees({ students }) {
   const [fees, setFees] = useState([]);
+  const [classSelect, setClassSelect] = useState("");
+  const [manualClass, setManualClass] = useState("");
   const [studentId, setStudentId] = useState("");
   const [feeTypeSelect, setFeeTypeSelect] = useState("School Fees");
   const [manualFeeType, setManualFeeType] = useState("");
@@ -17,7 +25,9 @@ export default function Fees({ students }) {
 
   const isManualFeeType = feeTypeSelect === OTHER_VALUE;
   const finalFeeType = isManualFeeType ? manualFeeType.trim() : feeTypeSelect;
-
+  const isManualClass = classSelect === OTHER_CLASS_VALUE;
+  const classFilter = isManualClass ? manualClass.trim() : classSelect;
+  const filteredStudents = students.filter(s => !classFilter || s.classLevel === classFilter);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "fees"), (snap) => {
       setFees(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -72,9 +82,18 @@ export default function Fees({ students }) {
       <p style={{ textAlign: 'center', color: '#666' }}>₦{totalCollected.toLocaleString()} collected / {fees.length} records</p>
 
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
+        <select value={classSelect} onChange={e => { setClassSelect(e.target.value); setStudentId(''); }} style={inputStyle}>
+          <option value="">Select class</option>
+          {CLASS_LEVELS.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value={OTHER_CLASS_VALUE}>Manual Input</option>
+        </select>
+        {isManualClass && (
+          <input value={manualClass} onChange={e => { setManualClass(e.target.value); setStudentId(''); }} placeholder="Type class name" style={inputStyle} />
+        )}
+
         <select value={studentId} onChange={e => setStudentId(e.target.value)} style={inputStyle}>
           <option value="">Select student</option>
-          {students.map(s => <option key={s.id} value={s.id}>{s.name} — {s.classLevel}</option>)}
+          {filteredStudents.map(s => <option key={s.id} value={s.id}>{s.name} — {s.classLevel}</option>)}
         </select>
 
         <select value={feeTypeSelect} onChange={e => setFeeTypeSelect(e.target.value)} style={inputStyle}>
