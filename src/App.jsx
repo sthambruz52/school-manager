@@ -39,6 +39,8 @@ function App() {
   const [students, setStudents] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
     const [openRollCallClass, setOpenRollCallClass] = useState(null);
+      const [rollCallDate, setRollCallDate] = useState(new Date().toISOString().split("T")[0]);
+  const [pastAttendance, setPastAttendance] = useState({});
   const [activeView, setActiveView] = useState("");
   const [chatAlertShown, setChatAlertShown] = useState(false);
 
@@ -97,6 +99,19 @@ function App() {
       setActiveView("home");
     }
   }, [userRole, activeView]);
+    const today = new Date().toISOString().split("T")[0];
+  const isViewingToday = rollCallDate === today;
+
+  useEffect(() => {
+    if (!user || isViewingToday) return;
+    const q = query(collection(db, "attendance"), where("date", "==", rollCallDate));
+    const unsub = onSnapshot(q, (snap) => {
+      const map = {};
+      snap.docs.forEach((d) => { map[d.data().studentId] = d.data().status; });
+      setPastAttendance(map);
+    });
+    return () => unsub();
+  }, [user, rollCallDate, isViewingToday]);
   useEffect(() => {
     if (!user || userRole === "Admin") return;
     const unsub = onSnapshot(doc(db, "supportChats", user.uid), (docSnap) => {
@@ -338,10 +353,38 @@ function App() {
           {activeView === "rollcall" && (
             <>
               <h2 style={{ textAlign: 'center' }}>Roll Call</h2>
-              <p style={{ textAlign: 'center', color: '#666' }}>{presentCount}/{students.length} present today</p>
+
+              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <input
+                  type="date"
+                  value={rollCallDate}
+                  max={today}
+                  onChange={(e) => setRollCallDate(e.target.value)}
+                  style={{ padding: '8px', borderRadius: '6px' }}
+                />
+                {!isViewingToday && (
+                  <button
+                    onClick={() => setRollCallDate(today)}
+                    style={{ marginLeft: '8px', background: '#1f4d3a', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px' }}
+                  >
+                    Back to Today
+                  </button>
+                )}
+              </div>
+
+              {isViewingToday ? (
+                <p style={{ textAlign: 'center', color: '#666' }}>{presentCount}/{students.length} present today</p>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#666' }}>
+                  Viewing attendance for {rollCallDate} (read-only)
+                </p>
+              )}
+
               {[...new Set(students.map(s => s.classLevel).filter(Boolean))].sort().map(cls => {
                 const classStudents = students.filter(s => s.classLevel === cls);
-                const classPresent = classStudents.filter(s => s.present).length;
+                const classPresent = isViewingToday
+                  ? classStudents.filter(s => s.present).length
+                  : classStudents.filter(s => pastAttendance[s.id] === 'Present').length;
                 return (
                   <div key={cls} style={{ background: 'white', borderRadius: '10px', margin: '10px 0', overflow: 'hidden' }}>
                     <div
@@ -356,10 +399,19 @@ function App() {
                         {classStudents.map(s => (
                           <div key={s.id} style={{ padding: '10px 14px', borderBottom: '1px solid #f4f0e6', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                             <span style={{ flex: '1 1 100px' }}>{s.name}</span>
-                            <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
-                              <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
-                              <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
-                            </div>
+                            {isViewingToday ? (
+                              <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                                <button onClick={() => togglePresent(s)} style={{ background: s.present ? '#1f4d3a' : 'white', color: s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Present</button>
+                                <button onClick={() => togglePresent(s)} style={{ background: !s.present ? '#c2704e' : 'white', color: !s.present ? 'white' : 'black', padding: '4px 10px', borderRadius: '12px' }}>Absent</button>
+                              </div>
+                            ) : (
+                              <span style={{
+                                background: pastAttendance[s.id] === 'Present' ? '#1f4d3a' : pastAttendance[s.id] === 'Absent' ? '#c2704e' : '#ccc',
+                                color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '13px'
+                              }}>
+                                {pastAttendance[s.id] || 'No record'}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -369,7 +421,6 @@ function App() {
               })}
             </>
           )}
-
           {activeView === "grades" && <Grades />}
 
           {activeView === "fees" && userRole === "Admin" && <Fees students={students} />}
