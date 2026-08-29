@@ -171,7 +171,16 @@ function App() {
   const presentCount = students.filter((s) => s.present).length;
 
   if (!authChecked) {
-    return <div style={{ textAlign: 'center', marginTop: '100px' }}>Loading...</div>;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px' }}>
+        <div style={{
+          width: '48px', height: '48px', borderRadius: '50%',
+          border: '4px solid #e5e0d0', borderTopColor: '#1f4d3a',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <p style={{ color: '#1f4d3a', fontWeight: 'bold', margin: 0 }}>Loading...</p>
+      </div>
+    );
   }
 
     if (!user) {
