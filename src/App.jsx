@@ -29,6 +29,8 @@ import PeriodicTest from "./components/PeriodicTest";
 import Assignments from "./components/Assignments";
 import SupportChat from "./components/SupportChat";
 import AccountSettings from "./components/AccountSettings";
+import TestimonialsAdmin from "./components/TestimonialsAdmin";
+import FAQAdmin from "./components/FAQAdmin";
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState("");
@@ -441,6 +443,8 @@ function App() {
                     
                     {activeView === "noticeboard" && <NoticeBoard isAdmin={userRole === "Admin"} />}
           {activeView === "schoolinfo" && userRole === "Admin" && <SchoolInfo />}
+                    {activeView === "testimonialsadmin" && userRole === "Admin" && <TestimonialsAdmin />}
+          {activeView === "faqadmin" && userRole === "Admin" && <FAQAdmin />}
                     {activeView === "reportcard" && (userRole === "Admin" || userRole === "Teacher") && (
             <ReportCard isAdmin={true} />
           )}
