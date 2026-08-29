@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -20,7 +20,9 @@ export const ICONS = {
   periodictest: ListChecks,
     assignments: ClipboardCheck,
     supportchat: MessageCircle,
-  accountsettings: Settings,
+    accountsettings: Settings,
+  testimonialsadmin: Star,
+  faqadmin: HelpCircle,
 };
 
 export const MENU_GROUPS = {
@@ -48,6 +50,8 @@ export const MENU_GROUPS = {
     ]},
     { group: "Settings", items: [
       { key: "schoolinfo", label: "School Info" },
+      { key: "testimonialsadmin", label: "Testimonials" },
+      { key: "faqadmin", label: "FAQ" },
     ]},
     { group: "Support", items: [
       { key: "supportchat", label: "Support Chat" },

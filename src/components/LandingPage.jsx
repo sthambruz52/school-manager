@@ -10,6 +10,8 @@ export default function LandingPage() {
   const [heroPhotos, setHeroPhotos] = useState([]);
   const [latestActivities, setLatestActivities] = useState([]);
   const [staffPreview, setStaffPreview] = useState([]);
+    const [testimonials, setTestimonials] = useState([]);
+  const [faqs, setFaqs] = useState([]);
   const [subjectCount, setSubjectCount] = useState(0);
   const [mode, setMode] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
@@ -43,7 +45,17 @@ export default function LandingPage() {
     const unsub = onSnap(q, (snap) => setStaffPreview(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return () => unsub();
   }, []);
+  useEffect(() => {
+    const q = query(collection(db, "testimonials"), orderBy("createdAt", "desc"), limit(6));
+    const unsub = onSnap(q, (snap) => setTestimonials(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return () => unsub();
+  }, []);
 
+  useEffect(() => {
+    const q = query(collection(db, "faqs"), orderBy("createdAt", "asc"));
+    const unsub = onSnap(q, (snap) => setFaqs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = onSnap(collection(db, "subjects"), (snap) => setSubjectCount(snap.size));
@@ -234,16 +246,14 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+
+      {testimonials.length > 0 && (
       <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
         <h2 style={sectionTitleStyle}>What Our Families Say</h2>
         <p style={sectionSubStyle}>Real experiences from our school community.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
-          {[
-            { quote: "My daughter has grown so much in confidence since joining. The teachers genuinely care about every child's progress.", name: "Mrs. Adaobi Nwankwo", role: "Parent, Primary 3" },
-            { quote: "I love how easy it is to check my results and see my attendance anytime. It keeps me on track every term.", name: "Kelechi Ibe", role: "Student, SS1" },
-            { quote: "Communication between the school and parents has never been better. I always know what's going on with my son's education.", name: "Mr. Tunde Bakare", role: "Parent, SS3" },
-          ].map((t) => (
-            <div key={t.name} style={{ background: "white", borderRadius: "12px", padding: "22px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+          {testimonials.map((t) => (
+            <div key={t.id} style={{ background: "white", borderRadius: "12px", padding: "22px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
               <div style={{ color: "#d4a017", fontSize: "18px", marginBottom: "10px" }}>★★★★★</div>
               <p style={{ fontSize: "14px", color: "#444", lineHeight: "1.6", fontStyle: "italic", margin: "0 0 14px" }}>
                 "{t.quote}"
@@ -265,7 +275,9 @@ export default function LandingPage() {
           ))}
         </div>
       </div>
-            <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
+      )}
+
+      <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
         <h2 style={sectionTitleStyle}>How to Join Us</h2>
         <p style={sectionSubStyle}>Getting your child enrolled is simple and quick.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
@@ -291,32 +303,29 @@ export default function LandingPage() {
           })}
         </div>
       </div>
-            <div style={{ maxWidth: "700px", margin: "50px auto 0", padding: "0 20px" }}>
+
+      {faqs.length > 0 && (
+      <div style={{ maxWidth: "700px", margin: "50px auto 0", padding: "0 20px" }}>
         <h2 style={sectionTitleStyle}>Frequently Asked Questions</h2>
         <p style={sectionSubStyle}>Everything you might want to know before registering.</p>
-        {[
-          { q: "How do I register my child?", a: "Tap 'Register Now', choose 'Student', and fill in the signup form. You'll then complete a short profile with class, subjects, and parent details." },
-          { q: "Can parents track their child's progress?", a: "Yes — parents get their own account linked to their child, with access to grades, attendance, fees, and their class teacher's details." },
-          { q: "Is there a fee to create an account?", a: "No, creating an account on the platform is completely free. School fees are managed separately through the Fees section once enrolled." },
-          { q: "Can I use this on my phone?", a: "Yes, the whole platform is built to work smoothly on phones, tablets, and computers alike." },
-          { q: "What if I forget my password?", a: "On the Login page, tap 'Forgot password?' and enter your email — a reset link will be sent to you." },
-        ].map((item, i) => (
-          <div key={i} style={{ background: "white", borderRadius: "10px", marginBottom: "10px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+        {faqs.map((item, i) => (
+          <div key={item.id} style={{ background: "white", borderRadius: "10px", marginBottom: "10px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
             <div
               onClick={() => setOpenFaq(openFaq === i ? null : i)}
               style={{ padding: "16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: "bold", color: "#1f4d3a", fontSize: "14px" }}
             >
-              {item.q}
+              {item.question}
               {openFaq === i ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
             {openFaq === i && (
               <div style={{ padding: "0 16px 16px", fontSize: "13px", color: "#666", lineHeight: "1.6" }}>
-                {item.a}
+                {item.answer}
               </div>
             )}
           </div>
         ))}
       </div>
+      )}
       <div style={{ background: "#1f4d3a", color: "white", marginTop: "50px", padding: "40px 20px" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>Ready to Join Our School Community?</h2>
