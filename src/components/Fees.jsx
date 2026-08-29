@@ -161,7 +161,7 @@ export default function Fees({ students }) {
           onClick={() => setReceiptFee(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}
         >
-          <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '10px', padding: '30px', maxWidth: '400px', width: '100%' }}>
+          <div onClick={(e) => e.stopPropagation()} className="receipt-print-only" style={{ background: 'white', borderRadius: '10px', padding: '30px', maxWidth: '400px', width: '100%' }}>
             <h2 style={{ textAlign: 'center', color: '#1f4d3a', marginTop: 0 }}>Payment Receipt</h2>
             <div style={{ borderTop: '2px solid #1f4d3a', borderBottom: '2px solid #1f4d3a', padding: '14px 0', margin: '14px 0' }}>
               <p style={{ margin: '4px 0' }}><strong>Receipt No:</strong> {receiptFee.id.slice(0, 8).toUpperCase()}</p>
@@ -175,7 +175,14 @@ export default function Fees({ students }) {
               <p style={{ margin: '4px 0' }}><strong>Date:</strong> {new Date(receiptFee.date).toLocaleDateString()}</p>
             </div>
             <div className="no-print" style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <button onClick={() => window.print()} style={{ background: '#1f4d3a', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '6px' }}>
+              <button
+                onClick={() => {
+                  document.body.classList.add('printing-receipt');
+                  window.print();
+                  setTimeout(() => document.body.classList.remove('printing-receipt'), 1000);
+                }}
+                style={{ background: '#1f4d3a', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '6px' }}
+              >
                 Print / Save as PDF
               </button>
               <button onClick={() => setReceiptFee(null)} style={{ background: 'white', color: '#1f4d3a', border: '1px solid #1f4d3a', padding: '8px 20px', borderRadius: '6px' }}>

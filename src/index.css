@@ -18,4 +18,20 @@ p {
   .no-print {
     display: none !important;
   }
+  body.printing-receipt * {
+    visibility: hidden;
+  }
+  body.printing-receipt .receipt-print-only,
+  body.printing-receipt .receipt-print-only * {
+    visibility: visible;
+  }
+  body.printing-receipt .receipt-print-only {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 30px;
+    box-sizing: border-box;
+  }
 }
