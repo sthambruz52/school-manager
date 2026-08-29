@@ -95,7 +95,7 @@ export default function Fees({ students }) {
         <button onClick={addFee} style={{ background: '#1f4d3a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none' }}>Add Fee</button>
       </div>
 
-      {fees.map(f => {
+      {fees.filter(f => f.totalDue !== undefined && f.amountPaid !== undefined).map(f => {
         const status = paymentStatus(f);
         const balance = f.totalDue - f.amountPaid;
         return (
