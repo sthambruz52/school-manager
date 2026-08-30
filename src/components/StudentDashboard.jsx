@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
-
+import { printFeeReceipt } from "../utils/printReceipt";
 export default function StudentDashboard({ userData }) {
   const [grades, setGrades] = useState([]);
   const [fees, setFees] = useState([]);
@@ -74,17 +74,34 @@ export default function StudentDashboard({ userData }) {
       )}
 
       <h2 style={{ textAlign: "center", marginTop: "30px" }}>My Fees</h2>
-      {fees.length === 0 ? (
+      {fees.filter(f => f.totalDue !== undefined).length === 0 ? (
         <p style={{ textAlign: "center", color: "#666" }}>No fee records yet.</p>
       ) : (
-        fees.map((f) => (
-          <div key={f.id} style={{ ...cardStyle, display: "flex", justifyContent: "space-between" }}>
-            <span>{f.term} — ₦{f.amount.toLocaleString()}</span>
-            <span style={{ background: f.status === "Paid" ? "#1f4d3a" : "#c2704e", color: "white", padding: "4px 12px", borderRadius: "12px" }}>
-              {f.status}
-            </span>
-          </div>
-        ))
+        fees.filter(f => f.totalDue !== undefined).map((f) => {
+          const status = f.amountPaid >= f.totalDue ? "Full Payment" : f.amountPaid > 0 ? "Part Payment" : "Unpaid";
+          const statusColor = status === "Full Payment" ? "#1f4d3a" : status === "Part Payment" ? "#d4a017" : "#c2704e";
+          return (
+            <div key={f.id} style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <strong>{f.feeType}</strong>
+                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#666" }}>
+                    {f.term} — ₦{f.amountPaid.toLocaleString()} of ₦{f.totalDue.toLocaleString()}
+                  </p>
+                </div>
+                <span style={{ background: statusColor, color: "white", padding: "4px 12px", borderRadius: "12px", fontSize: "13px" }}>
+                  {status}
+                </span>
+              </div>
+              <button
+                onClick={() => printFeeReceipt(f)}
+                style={{ marginTop: "8px", background: "white", color: "#1f4d3a", border: "1px solid #1f4d3a", padding: "5px 12px", borderRadius: "6px", fontSize: "13px" }}
+              >
+                Download Receipt
+              </button>
+            </div>
+          );
+        })
       )}
 
       <h2 style={{ textAlign: "center", marginTop: "30px" }}>My Attendance Today</h2>

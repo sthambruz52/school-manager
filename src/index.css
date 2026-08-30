@@ -34,6 +34,14 @@ button:disabled {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+.app-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.app-card:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
 @media print {
   .no-print {
     display: none !important;
