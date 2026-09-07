@@ -129,7 +129,7 @@ export default function StudentDashboard({ userData }) {
       ) : (
         teachers.map((t) => (
           <div key={t.id} style={{ ...cardStyle, display: "flex", alignItems: "center", gap: "10px" }}>
-            {t.photoURL && <img src={t.photoURL} alt="" style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />}
+            {t.photoURL && <img src={t.photoURL} alt="" style={{ width: "31px", height: "40px", borderRadius: "4px", objectFit: "cover" }} />}
             <span>{t.fullName} {t.subjects && t.subjects.length > 0 && `— ${t.subjects.join(", ")}`}</span>
           </div>
         ))

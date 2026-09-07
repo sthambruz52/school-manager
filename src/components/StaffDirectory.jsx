@@ -138,7 +138,7 @@ export default function StaffDirectory({ isAdmin }) {
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
             {photoURL ? (
-              <img src={photoURL} alt="" style={{ width: "70px", height: "70px", borderRadius: "50%", objectFit: "cover" }} />
+              <img src={photoURL} alt="" style={{ width: "54px", height: "70px", borderRadius: "50%", objectFit: "cover" }} />
             ) : (
               <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "#fdf6e9", border: "2px dashed #ccc" }} />
             )}
@@ -174,9 +174,9 @@ export default function StaffDirectory({ isAdmin }) {
         combinedList.map((s) => (
           <div key={s.id} style={{ background: "white", padding: "14px", margin: "8px 0", borderRadius: "10px", display: "flex", alignItems: "center", gap: "14px" }}>
             {s.photoURL ? (
-              <img src={s.photoURL} alt="" style={{ width: "56px", height: "56px", borderRadius: "50%", objectFit: "cover" }} />
+              <img src={s.photoURL} alt="" style={{ width: "44px", height: "56px", borderRadius: "50%", objectFit: "cover" }} />
             ) : (
-              <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "4px", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
                 {s.name?.charAt(0).toUpperCase()}
               </div>
             )}

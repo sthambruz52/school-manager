@@ -118,9 +118,9 @@ export default function AdminStudents({ isAdmin = true }) {
             <div key={s.id} style={cardStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
                 {s.photoURL ? (
-                  <img src={s.photoURL} alt="" style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover" }} />
+                  <img src={s.photoURL} alt="" style={{ width: "34px", height: "44px", borderRadius: "4px", objectFit: "cover" }} />
                 ) : (
-                  <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
+                  <div style={{width: "34px", height: "44px", borderRadius: "4px", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
                     {s.fullName?.charAt(0).toUpperCase() || "?"}
                   </div>
                 )}
