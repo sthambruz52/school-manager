@@ -24,9 +24,9 @@ export default function Home({ role, userData, userEmail, setActiveView }) {
         gap: "16px"
       }}>
         {userData?.photoURL ? (
-          <img src={userData.photoURL} alt="" style={{ width: "50px", height: "64px", borderRadius: "4px", objectFit: "cover", border: "3px solid rgba(255,255,255,0.5)" }} />
+          <img src={userData.photoURL} alt="" style={{ width: "50px", height: "64px", borderRadius: "0px", objectFit: "cover", border: "3px solid rgba(255,255,255,0.5)" }} />
         ) : (
-          <div style={{ width: "64px", height: "64px",borderRadius: "4px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px", fontWeight: "bold", border: "3px solid rgba(255,255,255,0.5)" }}>
+          <div style={{ width: "50px", height: "64px",borderRadius: "0px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px", fontWeight: "bold", border: "3px solid rgba(255,255,255,0.5)" }}>
             {(userData?.fullName || userEmail || "?").charAt(0).toUpperCase()}
           </div>
         )}
