@@ -140,7 +140,7 @@ export default function StaffDirectory({ isAdmin }) {
             {photoURL ? (
               <img src={photoURL} alt="" style={{ width: "54px", height: "70px", borderRadius: "50%", objectFit: "cover" }} />
             ) : (
-              <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "#fdf6e9", border: "2px dashed #ccc" }} />
+              <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "#fdf6e9",  }} />
             )}
             <label style={{ background: "#1f4d3a", color: "white", padding: "6px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
               {uploadingPhoto ? "Uploading..." : "Upload Photo"}

@@ -53,9 +53,9 @@ export default function SideMenu({ role, activeView, setActiveView, userData, us
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "0 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.15)", cursor: "pointer" }}
         >
           {userData?.photoURL ? (
-            <img src={userData.photoURL} alt="Profile" style={{ width: "44px", height: "56px", borderRadius: "0px", objectFit: "cover", border: "2px solid white" }} />
+            <img src={userData.photoURL} alt="Profile" style={{ width: "44px", height: "56px", borderRadius: "0px", objectFit: "cover",  }} />
           ) : (
-            <div style={{width: "44px", height: "56px", borderRadius: "0px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "bold", border: "2px solid white" }}>
+            <div style={{width: "44px", height: "56px", borderRadius: "0px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "bold",  }}>
               {(userData?.fullName || userEmail || "?").charAt(0).toUpperCase()}
             </div>
           )}
