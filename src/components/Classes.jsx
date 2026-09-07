@@ -64,7 +64,7 @@ export default function Classes({ isAdmin }) {
                       >
                         <span style={{ fontWeight: "bold", color: "#c2704e", width: "24px" }}>{i + 1}.</span>
                         {s.photoURL ? (
-                          <img src={s.photoURL} alt="" style={{ width: "28px", height: "36px", borderRadius: "50%", objectFit: "cover" }} />
+                          <img src={s.photoURL} alt="" style={{ width: "28px", height: "36px", borderRadius: "4px", objectFit: "cover" }} />
                         ) : (
                           <div style={{width: "28px", height: "36px", borderRadius: "4px", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "bold", color: "#1f4d3a" }}>
                             {s.fullName?.charAt(0).toUpperCase() || "?"}
