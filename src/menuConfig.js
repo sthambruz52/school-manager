@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle, CreditCard } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -22,7 +22,8 @@ export const ICONS = {
     supportchat: MessageCircle,
     accountsettings: Settings,
   testimonialsadmin: Star,
-  faqadmin: HelpCircle,
+    faqadmin: HelpCircle,
+  idcard: CreditCard,
 };
 
 export const MENU_GROUPS = {
@@ -91,7 +92,8 @@ export const MENU_GROUPS = {
       { key: "reportcard", label: "Report Card" },
       { key: "noticeboard", label: "Notice Board" },
       { key: "contactus", label: "Contact Us" },
-      { key: "mysubjects", label: "My Subjects" }
+      { key: "mysubjects", label: "My Subjects" },
+      { key: "idcard", label: "My ID Card" }
     ]},
     { group: "School Life", items: [
       { key: "staff", label: "Staff & Management" },

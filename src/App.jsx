@@ -24,6 +24,7 @@ import ReportCard from "./components/ReportCard";
 import NoticeBoard from "./components/NoticeBoard";
 import ContactUs from "./components/ContactUs";
 import MySubjects from "./components/MySubjects";
+import StudentIDCard from "./components/StudentIDCard";
 import Classes from "./components/Classes";
 import PeriodicTest from "./components/PeriodicTest";
 import Assignments from "./components/Assignments";
@@ -314,6 +315,9 @@ function App() {
       )}
             {userRole === "Student" && userData && activeView === "mysubjects" && (
         <MySubjects userData={userData} />
+      )}
+            {userRole === "Student" && userData && activeView === "idcard" && (
+        <StudentIDCard userData={userData} studentUid={user.uid} />
       )}
             {userRole === "Parent" && userData && activeView === "reportcard" && (
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>
