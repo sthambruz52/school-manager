@@ -109,6 +109,10 @@ export default function StudentIDCard({ userData, studentUid }) {
     ty += 24;
     ctx.fillText(`Session: ${userData.session || "-"}`, CARD_WIDTH / 2, ty);
 
+    ty += 24;
+    const dob = userData.dateOfBirth ? new Date(userData.dateOfBirth).toLocaleDateString() : "-";
+    ctx.fillText(`DOB: ${dob}   Sex: ${userData.sex || "-"}`, CARD_WIDTH / 2, ty);
+
     ty += 32;
     ctx.font = "bold 15px Arial";
     ctx.fillStyle = "#c2704e";

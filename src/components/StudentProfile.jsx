@@ -20,6 +20,8 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
     const [manualClass, setManualClass] = useState("");
   const [session, setSession] = useState(existingData?.session || "");
   const [term, setTerm] = useState(existingData?.term || "");
+  const [dateOfBirth, setDateOfBirth] = useState(existingData?.dateOfBirth || "");
+  const [sex, setSex] = useState(existingData?.sex || "");
 
   const [selectedSubjects, setSelectedSubjects] = useState(existingData?.subjects || []);
   const [customSubject, setCustomSubject] = useState("");
@@ -102,7 +104,7 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!fullName || !classLevel || !parentName || !parentPhone) {
+    if (!fullName || !classLevel || !parentName || !parentPhone || !dateOfBirth || !sex) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -118,6 +120,8 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
             classLevel: classLevel === OTHER_VALUE ? manualClass.trim() : classLevel,
       session,
       term,
+      dateOfBirth,
+      sex,
       subjects: selectedSubjects,
       photoURL,
       address: { street, lga, city, state: stateVal, country },
@@ -184,7 +188,20 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
             style={inputStyle}
           />
         )}
-
+        <div style={rowStyle}>
+          <input
+            type="date"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            required
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <select value={sex} onChange={(e) => setSex(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
+            <option value="">Select sex</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
         <input
           value={session}
           onChange={(e) => setSession(e.target.value)}
