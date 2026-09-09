@@ -115,7 +115,10 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
     }
 
         setSaving(true);
-    await setDoc(doc(db, "users", targetUid || auth.currentUser.uid), {
+    const uidForSave = targetUid || auth.currentUser.uid;
+    const regNumberPayload = isEditMode ? {} : { regNumber: "REG-" + new Date().getFullYear() + "-" + uidForSave.slice(0, 6).toUpperCase() };
+    await setDoc(doc(db, "users", uidForSave), {
+      ...regNumberPayload,
       fullName,
             classLevel: classLevel === OTHER_VALUE ? manualClass.trim() : classLevel,
       session,

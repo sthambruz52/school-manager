@@ -4,6 +4,8 @@ import { doc, onSnapshot } from "firebase/firestore";
 
 const CARD_WIDTH = 404;
 const CARD_HEIGHT = 640;
+const GREEN = "#1f4d3a";
+const ORANGE = "#c2704e";
 
 export default function StudentIDCard({ userData, studentUid }) {
   const [schoolInfo, setSchoolInfo] = useState(null);
@@ -25,10 +27,20 @@ export default function StudentIDCard({ userData, studentUid }) {
     return () => unsub();
   }, []);
 
-  const studentIdNumber = "STU-" + studentUid.slice(0, 8).toUpperCase();
+  const regNumber = userData.regNumber || ("REG-" + new Date().getFullYear() + "-" + studentUid.slice(0, 6).toUpperCase());
 
-  const drawRoundedImage = (ctx, img, x, y, w, h, r) => {
-    ctx.save();
+  const loadImage = (src) => {
+    return new Promise((resolve) => {
+      if (!src) { resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  };
+
+  const drawRoundedRect = (ctx, x, y, w, h, r) => {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -36,19 +48,15 @@ export default function StudentIDCard({ userData, studentUid }) {
     ctx.arcTo(x, y + h, x, y, r);
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(img, x, y, w, h);
-    ctx.restore();
   };
 
-  const wrapText = (ctx, text, x, y, maxWidth, lineHeight, centered) => {
+  const wrapText = (ctx, text, x, y, maxWidth, lineHeight) => {
     const words = text.split(" ");
     let line = "";
     let currentY = y;
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + " ";
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && i > 0) {
+      if (ctx.measureText(testLine).width > maxWidth && i > 0) {
         ctx.fillText(line, x, currentY);
         line = words[i] + " ";
         currentY += lineHeight;
@@ -60,100 +68,167 @@ export default function StudentIDCard({ userData, studentUid }) {
     return currentY;
   };
 
-  const drawFront = (photoImg) => {
+  const drawHeaderPattern = (ctx, headerHeight) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, CARD_WIDTH, headerHeight);
+    ctx.clip();
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 14;
+    [[-30, headerHeight - 20, 110], [CARD_WIDTH + 20, 40, 90], [70, headerHeight + 40, 70]].forEach(([cx, cy, r]) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.restore();
+  };
+
+  const drawFront = (logoImg, photoImg) => {
     const canvas = frontCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     canvas.width = CARD_WIDTH;
     canvas.height = CARD_HEIGHT;
 
+    const headerHeight = 190;
+    const stripeHeight = 8;
+
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-    ctx.fillStyle = "#1f4d3a";
-    ctx.fillRect(0, 0, CARD_WIDTH, 86);
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(0, 0, CARD_WIDTH, headerHeight);
+    drawHeaderPattern(ctx, headerHeight);
+
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, headerHeight, CARD_WIDTH, stripeHeight);
+
+    const logoR = 36;
+    const logoCx = CARD_WIDTH / 2;
+    const logoCy = 54;
     ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.font = "bold 17px Arial";
-    wrapText(ctx, schoolInfo?.schoolName || "School Name", CARD_WIDTH / 2, 30, CARD_WIDTH - 30, 20, true);
-    ctx.font = "italic 11px Arial";
-    ctx.fillText(schoolInfo?.tagline || "Student Identity Card", CARD_WIDTH / 2, 72);
-
-    const photoW = 150;
-    const photoH = 195;
-    const photoX = (CARD_WIDTH - photoW) / 2;
-    const photoY = 116;
-
-    if (photoImg) {
-      drawRoundedImage(ctx, photoImg, photoX, photoY, photoW, photoH, 6);
-    } else {
-      ctx.fillStyle = "#fdf6e9";
-      ctx.fillRect(photoX, photoY, photoW, photoH);
-      ctx.fillStyle = "#1f4d3a";
-      ctx.font = "bold 46px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText((userData.fullName || "?").charAt(0).toUpperCase(), photoX + photoW / 2, photoY + photoH / 2 + 16);
+    ctx.beginPath();
+    ctx.arc(logoCx, logoCy, logoR, 0, Math.PI * 2);
+    ctx.fill();
+    if (logoImg) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(logoCx, logoCy, logoR - 4, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(logoImg, logoCx - (logoR - 4), logoCy - (logoR - 4), (logoR - 4) * 2, (logoR - 4) * 2);
+      ctx.restore();
     }
 
-    let ty = photoY + photoH + 46;
-    ctx.fillStyle = "#1f4d3a";
-    ctx.font = "bold 21px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(userData.fullName || "", CARD_WIDTH / 2, ty);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 20px Arial";
+    let hy = wrapText(ctx, (schoolInfo?.schoolName || "School Name").toUpperCase(), CARD_WIDTH / 2, 118, CARD_WIDTH - 40, 24);
+    hy += 24;
+    ctx.font = "13px Arial";
+    wrapText(ctx, schoolInfo?.tagline || "Student Identity Card", CARD_WIDTH / 2, hy, CARD_WIDTH - 50, 16);
 
-    ty += 28;
-    ctx.fillStyle = "#444";
-    ctx.font = "16px Arial";
-    ctx.fillText(`Class: ${userData.classLevel || "-"}`, CARD_WIDTH / 2, ty);
+    const photoFrameW = 176;
+    const photoFrameH = 220;
+    const photoFrameX = (CARD_WIDTH - photoFrameW) / 2;
+    const photoFrameY = 140;
+    const border = 7;
 
-    ty += 24;
-    ctx.fillText(`Session: ${userData.session || "-"}`, CARD_WIDTH / 2, ty);
+    ctx.fillStyle = "#ffffff";
+    drawRoundedRect(ctx, photoFrameX, photoFrameY, photoFrameW, photoFrameH, 14);
+    ctx.shadowColor = "rgba(0,0,0,0.25)";
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
 
-    ty += 24;
+    const innerX = photoFrameX + border;
+    const innerY = photoFrameY + border;
+    const innerW = photoFrameW - border * 2;
+    const innerH = photoFrameH - border * 2;
+
+    ctx.save();
+    drawRoundedRect(ctx, innerX, innerY, innerW, innerH, 8);
+    ctx.clip();
+    if (photoImg) {
+      ctx.drawImage(photoImg, innerX, innerY, innerW, innerH);
+    } else {
+      ctx.fillStyle = "#fdf6e9";
+      ctx.fillRect(innerX, innerY, innerW, innerH);
+      ctx.fillStyle = GREEN;
+      ctx.font = "bold 48px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText((userData.fullName || "?").charAt(0).toUpperCase(), innerX + innerW / 2, innerY + innerH / 2 + 16);
+    }
+    ctx.restore();
+
+    let ty = photoFrameY + photoFrameH + 42;
+    ctx.fillStyle = ORANGE;
+    ctx.font = "bold 22px Arial";
+    ctx.textAlign = "center";
+    ty = wrapText(ctx, (userData.fullName || "").toUpperCase(), CARD_WIDTH / 2, ty, CARD_WIDTH - 40, 26);
+
+    ty += 30;
+    ctx.fillStyle = "#222";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText(`(${userData.classLevel || "-"} — STUDENT)`, CARD_WIDTH / 2, ty);
+
+    ty += 26;
+    ctx.fillStyle = "#555";
+    ctx.font = "13px Arial";
     const dob = userData.dateOfBirth ? new Date(userData.dateOfBirth).toLocaleDateString() : "-";
     ctx.fillText(`DOB: ${dob}   Sex: ${userData.sex || "-"}`, CARD_WIDTH / 2, ty);
 
-    ty += 32;
-    ctx.font = "bold 15px Arial";
-    ctx.fillStyle = "#c2704e";
-    ctx.fillText(studentIdNumber, CARD_WIDTH / 2, ty);
+    ty += 24;
+    ctx.font = "bold 13px Arial";
+    ctx.fillStyle = GREEN;
+    ctx.fillText(regNumber, CARD_WIDTH / 2, ty);
 
-    ctx.fillStyle = "#1f4d3a";
-    ctx.fillRect(0, CARD_HEIGHT - 14, CARD_WIDTH, 14);
+    const footerH = 14;
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, CARD_HEIGHT - footerH, CARD_WIDTH * 0.55, footerH);
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(CARD_WIDTH * 0.55, CARD_HEIGHT - footerH, CARD_WIDTH * 0.45, footerH);
   };
 
-  const drawBack = () => {
+  const drawBack = (logoImg) => {
     const canvas = backCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     canvas.width = CARD_WIDTH;
     canvas.height = CARD_HEIGHT;
 
+    const headerHeight = 70;
+    const stripeHeight = 8;
+
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-    ctx.fillStyle = "#1f4d3a";
-    ctx.fillRect(0, 0, CARD_WIDTH, 50);
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(0, 0, CARD_WIDTH, headerHeight);
+    drawHeaderPattern(ctx, headerHeight);
+
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, headerHeight, CARD_WIDTH, stripeHeight);
+
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 16px Arial";
+    ctx.font = "bold 17px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("STUDENT ID CARD", CARD_WIDTH / 2, 32);
+    ctx.fillText("STUDENT ID CARD", CARD_WIDTH / 2, 42);
 
     const address = [userData.address?.street, userData.address?.lga, userData.address?.city, userData.address?.state, userData.address?.country].filter(Boolean).join(", ");
 
     ctx.textAlign = "left";
-    let y = 90;
+    let y = 116;
     const leftX = 28;
     const maxW = CARD_WIDTH - leftX - 28;
 
     const drawStacked = (label, value) => {
       ctx.font = "bold 14px Arial";
-      ctx.fillStyle = "#1f4d3a";
+      ctx.fillStyle = GREEN;
       ctx.fillText(label, leftX, y);
       y += 20;
       ctx.font = "14px Arial";
       ctx.fillStyle = "#333";
-      y = wrapText(ctx, value || "-", leftX, y, maxW, 18, false);
+      y = wrapText(ctx, value || "-", leftX, y, maxW, 18);
       y += 30;
     };
 
@@ -164,11 +239,11 @@ export default function StudentIDCard({ userData, studentUid }) {
     y += 10;
     ctx.font = "italic 12px Arial";
     ctx.fillStyle = "#666";
-    y = wrapText(ctx, "If found, please return to:", leftX, y, maxW, 16, false);
+    y = wrapText(ctx, "If found, please return to:", leftX, y, maxW, 16);
     y += 18;
     ctx.font = "12px Arial";
     const contactLine = [contactInfo?.address, contactInfo?.phone1, contactInfo?.email].filter(Boolean).join(" | ");
-    wrapText(ctx, contactLine || "School office", leftX, y, maxW, 16, false);
+    wrapText(ctx, contactLine || "School office", leftX, y, maxW, 16);
 
     ctx.strokeStyle = "#999";
     ctx.beginPath();
@@ -179,22 +254,25 @@ export default function StudentIDCard({ userData, studentUid }) {
     ctx.fillStyle = "#888";
     ctx.fillText("Student's Signature", leftX, CARD_HEIGHT - 32);
 
-    ctx.fillStyle = "#1f4d3a";
-    ctx.fillRect(0, CARD_HEIGHT - 14, CARD_WIDTH, 14);
+    const footerH = 14;
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, CARD_HEIGHT - footerH, CARD_WIDTH * 0.55, footerH);
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(CARD_WIDTH * 0.55, CARD_HEIGHT - footerH, CARD_WIDTH * 0.45, footerH);
   };
 
   useEffect(() => {
-    drawBack();
-
-    if (userData.photoURL) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => drawFront(img);
-      img.onerror = () => drawFront(null);
-      img.src = userData.photoURL;
-    } else {
-      drawFront(null);
-    }
+    let cancelled = false;
+    (async () => {
+      const [logoImg, photoImg] = await Promise.all([
+        loadImage("/logo.jpg"),
+        loadImage(userData.photoURL)
+      ]);
+      if (cancelled) return;
+      drawFront(logoImg, photoImg);
+      drawBack(logoImg);
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line
   }, [userData, schoolInfo, contactInfo]);
 
