@@ -81,7 +81,7 @@ export default function TeacherProfile({ onComplete, existingData, targetUid }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!fullName || !phone) {
+    if (!fullName || !phone || !dateOfBirth || !sex) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -92,9 +92,14 @@ export default function TeacherProfile({ onComplete, existingData, targetUid }) 
     }
 
     setSaving(true);
-    await setDoc(doc(db, "users", targetUid || auth.currentUser.uid), {
+    const uidForSave = targetUid || auth.currentUser.uid;
+    const staffIdPayload = existingData ? {} : { staffId: "STF-" + new Date().getFullYear() + "-" + uidForSave.slice(0, 6).toUpperCase() };
+    await setDoc(doc(db, "users", uidForSave), {
+      ...staffIdPayload,
       fullName,
       phone,
+      dateOfBirth,
+      sex,
       subjects: selectedSubjects,
       photoURL,
       address: { street, lga, city, state: stateVal, country },
@@ -137,7 +142,20 @@ export default function TeacherProfile({ onComplete, existingData, targetUid }) 
 
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" required style={inputStyle} />
         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" required style={inputStyle} />
-
+        <div style={rowStyle}>
+          <input
+            type="date"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            required
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <select value={sex} onChange={(e) => setSex(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
+            <option value="">Select sex</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
         <p style={sectionLabel}>Subjects You Teach</p>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "160px", overflowY: "auto", border: "1px solid #eee", borderRadius: "6px", padding: "8px" }}>
           {subjects.map((s) => (

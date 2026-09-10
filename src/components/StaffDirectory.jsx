@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
-
+import StaffIDCardButton from "./StaffIDCardButton";
 const CLOUDINARY_CLOUD_NAME = "tatfep5k";
 const CLOUDINARY_UPLOAD_PRESET = "School Photos";
 
@@ -187,10 +187,15 @@ export default function StaffDirectory({ isAdmin }) {
                 <div style={{ fontSize: "13px", color: "#666" }}>{s.phone} {s.phone && s.email && "·"} {s.email}</div>
               )}
             </div>
-            {isAdmin && !s.isTeacherAccount && (
+            {isAdmin && (
               <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={() => startEdit(s)} style={{ background: "#1f4d3a", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>Edit</button>
-                <button onClick={() => removeStaff(s.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>x</button>
+                <StaffIDCardButton staffMember={s} />
+                {!s.isTeacherAccount && (
+                  <>
+                    <button onClick={() => startEdit(s)} style={{ background: "#1f4d3a", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>Edit</button>
+                    <button onClick={() => removeStaff(s.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>x</button>
+                  </>
+                )}
               </div>
             )}
           </div>

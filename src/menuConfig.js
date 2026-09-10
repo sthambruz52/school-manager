@@ -69,7 +69,8 @@ export const MENU_GROUPS = {
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
       { key: "noticeboard", label: "Notice Board" },
-      { key: "contactus", label: "Contact Us" }
+      { key: "contactus", label: "Contact Us" },
+      { key: "idcard", label: "My ID Card" }
     ]},
     { group: "Accounts", items: [
       { key: "adminstudents", label: "Students & Parents" },
