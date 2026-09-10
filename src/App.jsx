@@ -26,6 +26,7 @@ import ContactUs from "./components/ContactUs";
 import MySubjects from "./components/MySubjects";
 import StudentIDCard from "./components/StudentIDCard";
 import TeacherIDCard from "./components/TeacherIDCard";
+import AttendanceAnalytics from "./components/AttendanceAnalytics";
 import Classes from "./components/Classes";
 import PeriodicTest from "./components/PeriodicTest";
 import Assignments from "./components/Assignments";
@@ -464,6 +465,9 @@ function App() {
           {activeView === "faqadmin" && userRole === "Admin" && <FAQAdmin />}
                     {activeView === "reportcard" && (userRole === "Admin" || userRole === "Teacher") && (
             <ReportCard isAdmin={true} />
+          )}
+                    {activeView === "attendanceanalytics" && (userRole === "Admin" || userRole === "Teacher") && (
+            <AttendanceAnalytics />
           )}
                     {activeView === "periodictest" && (userRole === "Admin" || userRole === "Teacher") && (
             <PeriodicTest />

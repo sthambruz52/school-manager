@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle, CreditCard } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle, CreditCard, TrendingUp } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -23,7 +23,8 @@ export const ICONS = {
     accountsettings: Settings,
   testimonialsadmin: Star,
     faqadmin: HelpCircle,
-  idcard: CreditCard,
+   idcard: CreditCard,
+  attendanceanalytics: TrendingUp,
 };
 
 export const MENU_GROUPS = {
@@ -37,6 +38,7 @@ export const MENU_GROUPS = {
       { key: "classteachers", label: "Class Teachers" },
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
+      { key: "attendanceanalytics", label: "Attendance Analytics" },
       { key: "noticeboard", label: "Notice Board" },
       { key: "contactus", label: "Contact Us" }
     ]},
@@ -68,6 +70,7 @@ export const MENU_GROUPS = {
       { key: "subjects", label: "Subjects" },
       { key: "classes", label: "Classes" },
       { key: "reportcard", label: "Report Card" },
+      { key: "attendanceanalytics", label: "Attendance Analytics" },
       { key: "noticeboard", label: "Notice Board" },
       { key: "contactus", label: "Contact Us" },
       { key: "idcard", label: "My ID Card" }
