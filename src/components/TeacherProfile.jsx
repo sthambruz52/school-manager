@@ -9,6 +9,8 @@ export default function TeacherProfile({ onComplete, existingData, targetUid }) 
   const [subjects, setSubjects] = useState([]);
   const [fullName, setFullName] = useState(existingData?.fullName || "");
   const [phone, setPhone] = useState(existingData?.phone || "");
+  const [dateOfBirth, setDateOfBirth] = useState(existingData?.dateOfBirth || "");
+  const [sex, setSex] = useState(existingData?.sex || "");
 
   const [selectedSubjects, setSelectedSubjects] = useState(existingData?.subjects || []);
   const [customSubject, setCustomSubject] = useState("");
