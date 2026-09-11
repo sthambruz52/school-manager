@@ -34,9 +34,9 @@ export default function StaffIDCardButton({ staffMember }) {
       name: staffMember.name,
       photoURL: staffMember.photoURL,
       idNumber: staffId,
-      roleLabel: (staffMember.title || "STAFF").toUpperCase(),
+      roleLabel: staffMember.title || "Staff",
       dateOfBirth: staffMember.dateOfBirth,
-      sex: staffMember.sex,
+      email: staffMember.email,
       accentColor: ROLE_COLORS.Staff,
       lines: [
         { label: "Title:", value: staffMember.title },

@@ -319,10 +319,10 @@ function App() {
         <MySubjects userData={userData} />
       )}
             {userRole === "Student" && userData && activeView === "idcard" && (
-        <StudentIDCard userData={userData} studentUid={user.uid} />
+        <StudentIDCard userData={userData} studentUid={user.uid} studentEmail={user.email} />
       )}
             {userRole === "Teacher" && userData && activeView === "idcard" && (
-        <TeacherIDCard userData={userData} teacherUid={user.uid} />
+        <TeacherIDCard userData={userData} teacherUid={user.uid} teacherEmail={user.email} />
       )}
             {userRole === "Parent" && userData && activeView === "reportcard" && (
         <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px 20px' }}>

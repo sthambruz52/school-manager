@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { renderIDCard, downloadCanvas, ROLE_COLORS } from "../utils/generateIDCard";
 
-export default function TeacherIDCard({ userData, teacherUid }) {
+export default function TeacherIDCard({ userData, teacherUid, teacherEmail }) {
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [contactInfo, setContactInfo] = useState(null);
   const frontCanvasRef = useRef(null);
@@ -35,9 +35,9 @@ export default function TeacherIDCard({ userData, teacherUid }) {
       name: userData.fullName,
       photoURL: userData.photoURL,
       idNumber: staffId,
-      roleLabel: "TEACHER",
+      roleLabel: "Teacher",
       dateOfBirth: userData.dateOfBirth,
-      sex: userData.sex,
+      email: teacherEmail,
       accentColor: ROLE_COLORS.Teacher,
       lines: [
         { label: "Phone:", value: userData.phone },

@@ -47,6 +47,16 @@ const wrapText = (ctx, text, x, y, maxWidth, lineHeight) => {
   return currentY;
 };
 
+const formatDOB = (dateStr) => {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  const day = d.getDate();
+  const suffix = (day % 10 === 1 && day !== 11) ? "st" : (day % 10 === 2 && day !== 12) ? "nd" : (day % 10 === 3 && day !== 13) ? "rd" : "th";
+  const month = d.toLocaleString("en-US", { month: "short" });
+  return `${day}${suffix} ${month}. ${d.getFullYear()}`;
+};
+
 const drawHeaderPattern = (ctx, headerHeight) => {
   ctx.save();
   ctx.beginPath();
@@ -62,7 +72,7 @@ const drawHeaderPattern = (ctx, headerHeight) => {
   ctx.restore();
 };
 
-async function drawFront(canvas, { schoolInfo, name, photoURL, idNumber, roleLabel, dateOfBirth, sex, accentColor }) {
+async function drawFront(canvas, { schoolInfo, name, photoURL, idNumber, roleLabel, dateOfBirth, email, accentColor }) {
   const ctx = canvas.getContext("2d");
   canvas.width = CARD_WIDTH;
   canvas.height = CARD_HEIGHT;
@@ -139,27 +149,32 @@ async function drawFront(canvas, { schoolInfo, name, photoURL, idNumber, roleLab
   }
   ctx.restore();
 
-  let ty = photoFrameY + photoFrameH + 42;
+  let ty = photoFrameY + photoFrameH + 40;
   ctx.fillStyle = accentColor;
-  ctx.font = "bold 22px Arial";
+  ctx.font = "bold 21px Arial";
   ctx.textAlign = "center";
-  ty = wrapText(ctx, (name || "").toUpperCase(), CARD_WIDTH / 2, ty, CARD_WIDTH - 40, 26);
-
-  ty += 30;
-  ctx.fillStyle = "#222";
-  ctx.font = "bold 16px Arial";
-  ctx.fillText(`(${roleLabel})`, CARD_WIDTH / 2, ty);
+  ty = wrapText(ctx, (name || "").toUpperCase(), CARD_WIDTH / 2, ty, CARD_WIDTH - 40, 25);
 
   ty += 26;
-  ctx.fillStyle = "#555";
-  ctx.font = "13px Arial";
-  const dob = dateOfBirth ? new Date(dateOfBirth).toLocaleDateString() : "-";
-  ctx.fillText(`DOB: ${dob}   Sex: ${sex || "-"}`, CARD_WIDTH / 2, ty);
 
-  ty += 24;
-  ctx.font = "bold 13px Arial";
-  ctx.fillStyle = GREEN;
-  ctx.fillText(idNumber, CARD_WIDTH / 2, ty);
+  const infoLines = [
+    ["Role:", roleLabel || "-"],
+    ["DOB:", formatDOB(dateOfBirth)],
+    ["Email:", email || "-"],
+    ["Reg. Number:", idNumber]
+  ];
+
+  infoLines.forEach(([label, value]) => {
+    ctx.font = "bold 12px Arial";
+    ctx.fillStyle = GREEN;
+    ctx.textAlign = "right";
+    ctx.fillText(label, CARD_WIDTH / 2 - 6, ty);
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "left";
+    ctx.fillText(value, CARD_WIDTH / 2 + 6, ty);
+    ty += 20;
+  });
 
   const footerH = 14;
   ctx.fillStyle = accentColor;
@@ -168,7 +183,7 @@ async function drawFront(canvas, { schoolInfo, name, photoURL, idNumber, roleLab
   ctx.fillRect(CARD_WIDTH * 0.55, CARD_HEIGHT - footerH, CARD_WIDTH * 0.45, footerH);
 }
 
-async function drawBack(canvas, { contactInfo, lines, accentColor }) {
+async function drawBack(canvas, { contactInfo, schoolInfo, lines, accentColor }) {
   const ctx = canvas.getContext("2d");
   canvas.width = CARD_WIDTH;
   canvas.height = CARD_HEIGHT;
@@ -207,15 +222,33 @@ async function drawBack(canvas, { contactInfo, lines, accentColor }) {
     y += 30;
   });
 
-  y += 10;
-  ctx.font = "italic 12px Arial";
-  ctx.fillStyle = "#666";
-  y = wrapText(ctx, "If found, please return to:", leftX, y, maxW, 16);
-  y += 18;
-  ctx.font = "12px Arial";
-  const contactLine = [contactInfo?.address, contactInfo?.phone1, contactInfo?.email].filter(Boolean).join(" | ");
-  wrapText(ctx, contactLine || "School office", leftX, y, maxW, 16);
+  const dividerY = CARD_HEIGHT - 190;
+  ctx.strokeStyle = GREEN;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(24, dividerY);
+  ctx.lineTo(CARD_WIDTH - 24, dividerY);
+  ctx.stroke();
+  ctx.lineWidth = 1;
 
+  ctx.textAlign = "center";
+  let cy = dividerY + 26;
+  ctx.font = "bold 13px Arial";
+  ctx.fillStyle = GREEN;
+  cy = wrapText(ctx, (schoolInfo?.schoolName || "").toUpperCase(), CARD_WIDTH / 2, cy, CARD_WIDTH - 50, 16);
+  cy += 18;
+  ctx.font = "11px Arial";
+  ctx.fillStyle = "#444";
+  if (contactInfo?.address) {
+    cy = wrapText(ctx, contactInfo.address, CARD_WIDTH / 2, cy, CARD_WIDTH - 50, 14);
+    cy += 16;
+  }
+  const contactLine = [contactInfo?.phone1, contactInfo?.email].filter(Boolean).join("  |  ");
+  if (contactLine) {
+    wrapText(ctx, contactLine, CARD_WIDTH / 2, cy, CARD_WIDTH - 50, 14);
+  }
+
+  ctx.textAlign = "left";
   ctx.strokeStyle = "#999";
   ctx.beginPath();
   ctx.moveTo(leftX, CARD_HEIGHT - 50);
