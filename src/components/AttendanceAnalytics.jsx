@@ -46,7 +46,7 @@ export default function AttendanceAnalytics() {
       if (term && a.term !== term) return false;
       return true;
     });
-    const present = records.filter((r) => r.status === "Present").length;
+    const present = records.filter((r) => r.status === "Present" || r.status === "Late").length;
     const total = records.length;
     const pct = total > 0 ? Math.round((present / total) * 100) : null;
     return { id: s.id, name: s.fullName, classLevel: s.classLevel, present, total, pct };

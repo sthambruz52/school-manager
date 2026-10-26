@@ -34,6 +34,7 @@ import SupportChat from "./components/SupportChat";
 import AccountSettings from "./components/AccountSettings";
 import TestimonialsAdmin from "./components/TestimonialsAdmin";
 import MarksEntry from "./components/MarksEntry";
+import RollCall from "./components/RollCall";
 import FAQAdmin from "./components/FAQAdmin";
 function App() {
   const [user, setUser] = useState(null);
@@ -371,7 +372,9 @@ function App() {
       {(userRole === "Admin" || userRole === "Teacher") && activeView !== "home" && (
         <div style={{ maxWidth: '700px', margin: '20px auto', padding: '0 20px' }}>
 
-          {activeView === "rollcall" && (
+          {activeView === "rollcall" && <RollCall />}
+
+{activeView === "rollcallOld" && (
             <>
               <h2 style={{ textAlign: 'center' }}>Roll Call</h2>
 

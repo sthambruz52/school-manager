@@ -107,7 +107,7 @@ export default function ReportCard({ isAdmin, fixedStudentId, fixedStudentName }
     ? Math.round(subjectSummaries.reduce((sum, s) => sum + s.pct, 0) / subjectSummaries.length)
     : 0;
 
-  const presentCount = attendance.filter((a) => a.status === 'Present').length;
+  const presentCount = attendance.filter((a) => a.status === 'Present' || a.status === 'Late').length;
   const totalDays = attendance.length;
   const attendancePct = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
 
