@@ -33,6 +33,7 @@ import Assignments from "./components/Assignments";
 import SupportChat from "./components/SupportChat";
 import AccountSettings from "./components/AccountSettings";
 import TestimonialsAdmin from "./components/TestimonialsAdmin";
+import MarksEntry from "./components/MarksEntry";
 import FAQAdmin from "./components/FAQAdmin";
 function App() {
   const [user, setUser] = useState(null);
@@ -441,7 +442,7 @@ function App() {
               })}
             </>
           )}
-          {activeView === "grades" && <Grades />}
+          {activeView === "grades" && <MarksEntry />}
 
           {activeView === "fees" && userRole === "Admin" && <Fees students={students} />}
 
