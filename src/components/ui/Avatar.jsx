@@ -9,15 +9,17 @@ function colorIndex(name) {
 }
 
 export default function Avatar({ name, photoURL, size = 40 }) {
+  const shape = {
+    width: Math.round(size * 0.8),
+    height: size,
+    borderRadius: "5px",
+    flexShrink: 0
+  };
+
   if (photoURL) {
-    return (
-      <img
-        src={photoURL}
-        alt=""
-        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-      />
-    );
+    return <img src={photoURL} alt="" style={{ ...shape, objectFit: "cover", display: "block" }} />;
   }
+
   const idx = colorIndex(name);
   const initials = (name || "?")
     .split(" ")
@@ -28,17 +30,14 @@ export default function Avatar({ name, photoURL, size = 40 }) {
 
   return (
     <div style={{
-      width: size,
-      height: size,
-      borderRadius: "50%",
+      ...shape,
       background: PALETTE[idx],
       color: TEXT_PALETTE[idx],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       fontWeight: "700",
-      fontSize: size * 0.38,
-      flexShrink: 0
+      fontSize: size * 0.38
     }}>
       {initials}
     </div>

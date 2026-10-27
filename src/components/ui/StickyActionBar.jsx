@@ -4,11 +4,12 @@ export default function StickyActionBar({ children }) {
   return (
     <div style={{
       position: "sticky",
-      bottom: 0,
+      bottom: "88px",
       background: theme.colors.card,
-      borderTop: `1px solid ${theme.colors.border}`,
-      padding: "12px 16px",
-      boxShadow: "0 -4px 12px rgba(0,0,0,0.06)",
+      borderRadius: theme.radius.md,
+      padding: "10px",
+      margin: "12px 0",
+      boxShadow: "0 6px 18px rgba(30, 27, 46, 0.15)",
       zIndex: 10
     }}>
       {children}

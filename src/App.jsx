@@ -14,6 +14,8 @@ import Grades from "./components/Grades";
 import StudentDashboard from "./components/StudentDashboard";
 import ParentDashboard from "./components/ParentDashboard";
 import SideMenu from "./components/SideMenu";
+import BottomNav from "./components/ui/BottomNav";
+import { NAV_ITEMS } from "./navConfig";
 import StaffDirectory from "./components/StaffDirectory";
 import Gallery from "./components/Gallery";
 import AdminStudents from "./components/AdminStudents";
@@ -243,7 +245,7 @@ function App() {
         setIsOpen={setMenuOpen}
       />
 
-      <div style={{ background: '#1f4d3a', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
+      <div style={{ background: '#db0d0d', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
         <button
           onClick={() => setMenuOpen(true)}
           style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer', justifySelf: 'start' }}
@@ -277,7 +279,7 @@ function App() {
         <div style={{ maxWidth: '700px', margin: '16px auto 0', padding: '0 20px' }}>
           <span
             onClick={() => setActiveView("home")}
-            style={{ color: '#1f4d3a', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+            style={{ color: '#cdef11', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
           >
             ← Back to Home
           </span>
@@ -491,6 +493,14 @@ function App() {
       <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '11px' }}>
         Developed by EPIC TRIBE RESOURCES INT.
       </div>
+            <div style={{ height: '100px' }} />
+      {!menuOpen && (
+        <BottomNav
+          items={NAV_ITEMS[userRole] || []}
+          activeKey={activeView}
+          onSelect={(key) => (key === "menu" ? setMenuOpen(true) : setActiveView(key))}
+        />
+      )}
     </div>
   );
 }

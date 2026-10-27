@@ -1,83 +1,167 @@
+import { ChevronRight } from "lucide-react";
 import { MENU_GROUPS, ICONS } from "../menuConfig";
+import { theme } from "../theme";
+import Avatar from "./ui/Avatar";
+
+const SUBTITLES = {
+  rollcall: "Mark daily attendance",
+  grades: "Enter and track marks",
+  periodictest: "Test 1, 2 and 3 scores",
+  assignments: "Post and grade assignments",
+  subjects: "Manage school subjects",
+  classteachers: "Assign teachers to classes",
+  classes: "Class lists and roll numbers",
+  reportcard: "Termly results and remarks",
+  attendanceanalytics: "Attendance rates by class",
+  noticeboard: "School announcements",
+  contactus: "School address and phone",
+  adminstudents: "Students, parents and teachers",
+  fees: "Payments, balances and receipts",
+  staff: "Teachers and management",
+  gallery: "School photos",
+  activities: "Sports, awards and events",
+  schoolinfo: "School name and introduction",
+  testimonialsadmin: "Manage testimonials",
+  faqadmin: "Manage FAQs",
+  supportchat: "Message the admin office",
+  accountsettings: "Password and notifications",
+  dashboard: "Grades, fees and attendance",
+  mysubjects: "Your subjects and teachers",
+  idcard: "View and download your ID card"
+};
+
+const FAMILY_SUBTITLES = {
+  assignments: "What's due and the scores",
+  reportcard: "Termly results"
+};
 
 const TILE_COLORS = [
-  "#1f4d3a", "#c2704e", "#3a6ea5", "#8e44ad", "#d4a017", "#2e8b57"
+  { bg: "#eef0ff", fg: "#4f46e5" },
+  { bg: "#e0f2fe", fg: "#0284c7" },
+  { bg: "#f3e8ff", fg: "#9333ea" },
+  { bg: "#dcfce7", fg: "#16a34a" },
+  { bg: "#fef3c7", fg: "#d97706" },
+  { bg: "#fee2e2", fg: "#dc2626" }
 ];
+
+function profileLine(role, d, email) {
+  if (role === "Student") return `Student • ${d.regNumber || "—"}`;
+  if (role === "Teacher") return `Teacher • ${d.staffId || "—"}`;
+  return `${role} • ${email}`;
+}
+
+function statsFor(role, d) {
+  if (role === "Student") {
+    return [["Class", d.classLevel || "-"], ["Term", d.term || "-"], ["Session", d.session || "-"]];
+  }
+  if (role === "Teacher") {
+    return [
+      ["Subjects", (d.subjects || []).length],
+      ["Role", "Teacher"],
+      ["Staff ID", d.staffId ? d.staffId.split("-").pop() : "-"]
+    ];
+  }
+  if (role === "Parent") {
+    return [["Wards", (d.children || []).length], ["Role", "Parent"]];
+  }
+  return [["Role", role || "-"]];
+}
 
 export default function Home({ role, userData, userEmail, setActiveView }) {
   const groups = MENU_GROUPS[role] || [];
-  let colorIndex = 0;
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const data = userData || {};
+  const name = data.fullName || userEmail;
+  const stats = statsFor(role, data);
+  const isFamily = role === "Student" || role === "Parent";
+  let tileIndex = 0;
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px 20px 60px" }}>
-      <div style={{
-        background: "linear-gradient(135deg, #1f4d3a, #2e6b4f)",
-        borderRadius: "16px",
-        padding: "28px 24px",
-        color: "white",
-        marginBottom: "24px",
-        display: "flex",
-        alignItems: "center",
-        gap: "16px"
-      }}>
-        {userData?.photoURL ? (
-          <img src={userData.photoURL} alt="" style={{ width: "50px", height: "64px", borderRadius: "0px", objectFit: "cover",  }} />
-        ) : (
-          <div style={{ width: "50px", height: "64px",borderRadius: "0px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px", fontWeight: "bold",  }}>
-            {(userData?.fullName || userEmail || "?").charAt(0).toUpperCase()}
+    <div style={{ maxWidth: "700px", margin: "0 auto", padding: "16px 16px 120px" }}>
+      <div style={{ background: "white", borderRadius: theme.radius.lg, boxShadow: theme.shadow, overflow: "hidden" }}>
+        <div style={{ height: "96px", background: theme.gradient("#4338ca", "#7c3aed") }} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "-60px", padding: "0 16px 18px" }}>
+          <div style={{ boxShadow: "0 6px 16px rgba(0,0,0,0.22)", borderRadius: "5px", lineHeight: 0 }}>
+            <Avatar name={name} photoURL={data.photoURL} size={116} />
           </div>
-        )}
-        <div>
-          <div style={{ fontSize: "14px", opacity: 0.85 }}>{greeting},</div>
-          <div style={{ fontSize: "22px", fontWeight: "bold" }}>{userData?.fullName || userEmail}</div>
-          <div style={{ display: "inline-block", marginTop: "6px", background: "rgba(255,255,255,0.2)", padding: "2px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}>
-            {role?.toUpperCase()}
+          <div style={{ fontSize: "22px", fontWeight: "800", color: theme.colors.text, marginTop: "12px", textAlign: "center" }}>
+            {name}
           </div>
+          <div style={{ fontSize: "14px", color: theme.colors.textMuted, marginTop: "2px", textAlign: "center" }}>
+            {profileLine(role, data, userEmail)}
+          </div>
+        </div>
+        <div style={{ display: "flex", borderTop: `1px solid ${theme.colors.border}` }}>
+          {stats.map(([label, value], i) => (
+            <div
+              key={label}
+              style={{
+                flex: 1,
+                textAlign: "center",
+                padding: "14px 6px",
+                borderRight: i < stats.length - 1 ? `1px solid ${theme.colors.border}` : "none"
+              }}
+            >
+              <div style={{ fontWeight: "800", fontSize: "16px", color: theme.colors.text }}>{value}</div>
+              <div style={{ fontSize: "12px", color: theme.colors.textMuted }}>{label}</div>
+            </div>
+          ))}
         </div>
       </div>
 
       {groups.map((g) => (
-        <div key={g.group} style={{ marginBottom: "26px" }}>
-          <h3 style={{ color: "#1f4d3a", marginBottom: "12px", fontSize: "16px", letterSpacing: "0.5px" }}>{g.group}</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "14px" }}>
-            {g.items.map((item) => {
-              const color = TILE_COLORS[colorIndex % TILE_COLORS.length];
-              colorIndex++;
-              const IconComponent = ICONS[item.key];
+        <div key={g.group}>
+          <div style={{
+            fontSize: "12px",
+            fontWeight: "800",
+            letterSpacing: "1.5px",
+            color: "#64748b",
+            textTransform: "uppercase",
+            margin: "24px 4px 10px"
+          }}>
+            {g.group}
+          </div>
+          <div style={{ background: "white", borderRadius: theme.radius.md, boxShadow: theme.shadow, overflow: "hidden" }}>
+            {g.items.map((item, i) => {
+              const Icon = ICONS[item.key];
+              const color = TILE_COLORS[tileIndex++ % TILE_COLORS.length];
+              const subtitle = (isFamily && FAMILY_SUBTITLES[item.key]) || SUBTITLES[item.key] || "";
               return (
                 <div
                   key={item.key}
                   onClick={() => setActiveView(item.key)}
                   style={{
-                    background: "white",
-                    borderRadius: "14px",
-                    padding: "20px 14px",
-                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                    padding: "14px 16px",
                     cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    transition: "transform 0.15s ease",
-                    borderTop: `4px solid ${color}`
+                    borderTop: i > 0 ? `1px solid ${theme.colors.border}` : "none"
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-3px)"}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
                 >
-                  <div style={{ marginBottom: "8px", display: "flex", justifyContent: "center", color }}>
-                    {IconComponent && <IconComponent size={30} />}
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "12px",
+                    background: color.bg,
+                    color: color.fg,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0
+                  }}>
+                    {Icon && <Icon size={22} />}
                   </div>
-                  <div style={{ fontWeight: "bold", fontSize: "14px", color: "#333" }}>{item.label}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: "700", fontSize: "15px", color: theme.colors.text }}>{item.label}</div>
+                    <div style={{ fontSize: "13px", color: theme.colors.textMuted }}>{subtitle}</div>
+                  </div>
+                  <ChevronRight size={18} color="#9ca3af" />
                 </div>
               );
             })}
           </div>
         </div>
       ))}
-
-      <div style={{ textAlign: "center", marginTop: "10px", color: "#999", fontSize: "13px" }}>
-        Tap any tile above, or use the ☰ menu anytime.
-      </div>
     </div>
   );
 }

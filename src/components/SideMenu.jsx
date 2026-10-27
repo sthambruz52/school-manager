@@ -38,7 +38,7 @@ export default function SideMenu({ role, activeView, setActiveView, userData, us
           left: isOpen ? 0 : "-260px",
           width: "260px",
           height: "100%",
-          background: "#1f4d3a",
+          background: "#e60f0f",
           color: "white",
           transition: "left 0.25s ease",
           zIndex: 50,
