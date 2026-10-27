@@ -245,7 +245,7 @@ function App() {
         setIsOpen={setMenuOpen}
       />
 
-      <div style={{ background: '#db0d0d', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
+      <div style={{ background: '#62479e', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
         <button
           onClick={() => setMenuOpen(true)}
           style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer', justifySelf: 'start' }}
