@@ -1,118 +1,51 @@
-import { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
-import { printFeeReceipt } from "../utils/printReceipt";
-function ChildSection({ child }) {
-  const [grades, setGrades] = useState([]);
-  const [fees, setFees] = useState([]);
-  const [studentData, setStudentData] = useState(null);
-  const [classTeacher, setClassTeacher] = useState(null);
-
-  useEffect(() => {
-    const q = query(collection(db, "grades"), where("studentId", "==", child.uid));
-    const unsub = onSnapshot(q, (snap) => setGrades(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, [child.uid]);
-
-  useEffect(() => {
-    const q = query(collection(db, "fees"), where("studentId", "==", child.uid));
-    const unsub = onSnapshot(q, (snap) => setFees(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, [child.uid]);
-
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "users", child.uid), (docSnap) => {
-      if (docSnap.exists()) setStudentData(docSnap.data());
-    });
-    return () => unsub();
-  }, [child.uid]);
-
-  useEffect(() => {
-    if (!studentData?.classLevel) return;
-    const unsub = onSnapshot(doc(db, "classTeachers", studentData.classLevel), (docSnap) => {
-      setClassTeacher(docSnap.exists() ? docSnap.data() : null);
-    });
-    return () => unsub();
-  }, [studentData?.classLevel]);
-
-  const cardStyle = { background: "white", padding: "12px", margin: "8px 0", borderRadius: "8px" };
-
-  return (
-    <div style={{ marginTop: "30px", border: "1px solid #eee", borderRadius: "10px", padding: "16px" }}>
-      <h2 style={{ textAlign: "center", color: "#1f4d3a" }}>{child.name} — {studentData?.classLevel}</h2>
-
-      <h3 style={{ textAlign: "center" }}>Grades</h3>
-      {grades.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No grades yet.</p>
-      ) : (
-        grades.map((g) => {
-          const pct = g.maxScore ? Math.round((g.score / g.maxScore) * 100) : 0;
-          return (
-            <div key={g.id} style={{ ...cardStyle, display: "flex", justifyContent: "space-between" }}>
-              <span>{g.subject}</span>
-              <span style={{ color: pct >= 60 ? "#1f4d3a" : "#c2704e", fontWeight: "bold" }}>
-                {g.score}/{g.maxScore} ({pct}%)
-              </span>
-            </div>
-          );
-        })
-      )}
-
-      <h3 style={{ textAlign: "center" }}>Fees</h3>
-      {fees.filter(f => f.totalDue !== undefined).length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No fee records yet.</p>
-      ) : (
-        fees.filter(f => f.totalDue !== undefined).map((f) => {
-          const status = f.amountPaid >= f.totalDue ? "Full Payment" : f.amountPaid > 0 ? "Part Payment" : "Unpaid";
-          const statusColor = status === "Full Payment" ? "#1f4d3a" : status === "Part Payment" ? "#d4a017" : "#c2704e";
-          return (
-            <div key={f.id} style={cardStyle}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <strong>{f.feeType}</strong>
-                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#666" }}>
-                    {f.term} — ₦{f.amountPaid.toLocaleString()} of ₦{f.totalDue.toLocaleString()}
-                  </p>
-                </div>
-                <span style={{ background: statusColor, color: "white", padding: "4px 12px", borderRadius: "12px", fontSize: "13px" }}>
-                  {status}
-                </span>
-              </div>
-              <button
-                onClick={() => printFeeReceipt(f)}
-                style={{ marginTop: "8px", background: "white", color: "#1f4d3a", border: "1px solid #1f4d3a", padding: "5px 12px", borderRadius: "6px", fontSize: "13px" }}
-              >
-                Download Receipt
-              </button>
-            </div>
-          );
-        })
-      )}
-
-      <h3 style={{ textAlign: "center" }}>Attendance Today</h3>
-      <div style={cardStyle}>
-        <strong style={{ color: studentData?.present ? "#1f4d3a" : "#c2704e" }}>
-          {studentData?.present ? "Present" : "Absent"}
-        </strong>
-      </div>
-
-      <h3 style={{ textAlign: "center" }}>Class Teacher</h3>
-      <div style={cardStyle}>{classTeacher?.teacherName || "Not assigned yet"}</div>
-    </div>
-  );
-}
+import { useState } from "react";
+import { theme } from "../theme";
+import Header from "./ui/Header";
+import Card from "./ui/Card";
+import StudentOverview from "./StudentOverview";
 
 export default function ParentDashboard({ userData }) {
   const children = userData.children || [];
+  const [selected, setSelected] = useState(children[0]?.uid || "");
+  const active = children.find((c) => c.uid === selected) || children[0];
 
   return (
-    <div style={{ maxWidth: "700px", margin: "20px auto" }}>
+    <div style={{ maxWidth: "700px", margin: "10px auto 0", padding: "0 16px" }}>
+      <Header title="My Child" subtitle={active ? active.name : "Grades, fees and attendance"} />
+
       {children.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>
-          No ward linked yet. Go to "My Profile" to search and link your child.
-        </p>
+        <Card>
+          <p style={{ textAlign: "center", color: theme.colors.textMuted, margin: "10px 0" }}>
+            No ward linked yet. Open "My Profile" from the menu to search for and link your child.
+          </p>
+        </Card>
       ) : (
-        children.map((child) => <ChildSection key={child.uid} child={child} />)
+        <>
+          {children.length > 1 && (
+            <div style={{ display: "flex", gap: "8px", overflowX: "auto", padding: "14px 0 2px" }}>
+              {children.map((c) => (
+                <button
+                  key={c.uid}
+                  onClick={() => setSelected(c.uid)}
+                  style={{
+                    flexShrink: 0,
+                    border: "none",
+                    borderRadius: "999px",
+                    padding: "9px 16px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    background: active.uid === c.uid ? theme.colors.primary : "white",
+                    color: active.uid === c.uid ? "white" : theme.colors.text,
+                    boxShadow: theme.shadow
+                  }}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <StudentOverview key={active.uid} studentId={active.uid} fallbackName={active.name} />
+        </>
       )}
     </div>
   );
