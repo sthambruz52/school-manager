@@ -6,6 +6,7 @@ import Fees from "./components/Fees";
 import Subjects from "./components/Subjects";
 import Login from "./components/Login";
 import LandingPage from "./components/LandingPage";
+import PublicHome from "./components/PublicHome";
 import StudentProfile from "./components/StudentProfile";
 import TeacherProfile from "./components/TeacherProfile";
 import ParentProfile from "./components/ParentProfile";
@@ -191,7 +192,7 @@ function App() {
   }
 
     if (!user) {
-    return <LandingPage />;
+    return <PublicHome />;
   }
 
   if (userData?.status === "disabled") {
