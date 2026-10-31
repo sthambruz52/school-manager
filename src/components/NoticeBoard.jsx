@@ -1,9 +1,25 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { Megaphone, Plus, X, Trash2 } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import StatusPill from "./ui/StatusPill";
+import EmptyState from "./ui/EmptyState";
+
+const when = (ts) => {
+  const d = ts?.toDate ? ts.toDate() : ts ? new Date(ts) : null;
+  return d && !isNaN(d.getTime())
+    ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "";
+};
 
 export default function NoticeBoard({ isAdmin }) {
   const [notices, setNotices] = useState([]);
+  const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [urgent, setUrgent] = useState(false);
@@ -19,15 +35,21 @@ export default function NoticeBoard({ isAdmin }) {
 
   const addNotice = async () => {
     if (!title.trim() || !message.trim()) return alert("Enter a title and message.");
-
     setSaving(true);
-    await addDoc(collection(db, "notices"), {
-      title: title.trim(),
-      message: message.trim(),
-      urgent,
-      createdAt: new Date()
-    });
-    setTitle(""); setMessage(""); setUrgent(false);
+    try {
+      await addDoc(collection(db, "notices"), {
+        title: title.trim(),
+        message: message.trim(),
+        urgent,
+        createdAt: new Date()
+      });
+      setTitle("");
+      setMessage("");
+      setUrgent(false);
+      setShowForm(false);
+    } catch (err) {
+      alert("Could not post the notice. Please try again.");
+    }
     setSaving(false);
   };
 
@@ -35,62 +57,73 @@ export default function NoticeBoard({ isAdmin }) {
     if (confirm("Remove this notice?")) await deleteDoc(doc(db, "notices", id));
   };
 
-  const inputStyle = { padding: "10px", borderRadius: "6px" };
+  const ordered = [...notices].sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0));
 
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>Notice Board</h2>
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title="Notice Board"
+        subtitle="Announcements from the school"
+        rightSlot={
+          isAdmin ? (
+            <HeaderAction
+              icon={showForm ? <X size={16} /> : <Plus size={16} />}
+              label={showForm ? "Close" : "New Notice"}
+              onClick={() => setShowForm(!showForm)}
+            />
+          ) : null
+        }
+      />
 
-      {isAdmin && (
-        <div style={{ background: "white", padding: "16px", borderRadius: "10px", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Notice title" style={inputStyle} />
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Write the announcement..."
-            rows={4}
-            style={{ ...inputStyle, resize: "vertical", fontFamily: "Arial" }}
-          />
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
-            <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
-            Mark as urgent
-          </label>
-          <button onClick={addNotice} disabled={saving} style={{ background: "#1f4d3a", color: "white", padding: "10px", borderRadius: "6px", border: "none" }}>
-            {saving ? "Posting..." : "Post Notice"}
-          </button>
-        </div>
+      {isAdmin && showForm && (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Notice title" style={field} />
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write the announcement..."
+              rows={4}
+              style={{ ...field, resize: "vertical", fontFamily: "Arial" }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: theme.colors.text }}>
+              <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
+              Mark as urgent (shows at the top)
+            </label>
+            <Button full onClick={addNotice} disabled={saving}>
+              {saving ? "Posting..." : "Post Notice"}
+            </Button>
+          </div>
+        </Card>
       )}
 
-      {notices.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No notices posted yet.</p>
+      {ordered.length === 0 ? (
+        <EmptyState icon={Megaphone} text="No notices posted yet." />
       ) : (
-        notices.map((n) => (
-          <div
-            key={n.id}
-            style={{
-              background: "white",
-              padding: "14px",
-              margin: "10px 0",
-              borderRadius: "10px",
-              borderLeft: n.urgent ? "5px solid #c2704e" : "5px solid #1f4d3a"
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                {n.urgent && (
-                  <span style={{ background: "#c2704e", color: "white", fontSize: "11px", fontWeight: "bold", padding: "2px 8px", borderRadius: "10px", marginRight: "8px" }}>
-                    URGENT
-                  </span>
+        <div style={{ marginTop: "14px" }}>
+          {ordered.map((n) => (
+            <Card
+              key={n.id}
+              style={{ borderLeft: `5px solid ${n.urgent ? theme.colors.danger : theme.colors.primary}` }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    {n.urgent && <StatusPill label="URGENT" variant="danger" />}
+                    <span style={{ fontWeight: "800", fontSize: "16px", color: theme.colors.text }}>{n.title}</span>
+                  </div>
+                  <div style={{ fontSize: "12px", color: theme.colors.textMuted, marginTop: "4px" }}>{when(n.createdAt)}</div>
+                </div>
+                {isAdmin && (
+                  <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => removeNotice(n.id)} />
                 )}
-                <strong style={{ fontSize: "16px" }}>{n.title}</strong>
               </div>
-              {isAdmin && (
-                <button onClick={() => removeNotice(n.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "2px 8px" }}>x</button>
-              )}
-            </div>
-            <p style={{ margin: "8px 0 0", color: "#444", fontSize: "14px", whiteSpace: "pre-wrap" }}>{n.message}</p>
-          </div>
-        ))
+              <p style={{ margin: "10px 0 0", color: "#374151", fontSize: "14px", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {n.message}
+              </p>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

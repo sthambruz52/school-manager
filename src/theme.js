@@ -26,5 +26,15 @@ export const theme = {
   gradient: (from, to) => `linear-gradient(135deg, ${from}, ${to})`
 };
 
+export const field = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid #e5e7eb",
+  background: "white",
+  fontSize: "14px",
+  minWidth: 0,
+  boxSizing: "border-box"
+};
+
 export const formatNaira = (amount) =>
   "₦" + Number(amount || 0).toLocaleString("en-NG", { maximumFractionDigits: 2 });

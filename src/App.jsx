@@ -232,7 +232,7 @@ function App() {
   const hasProfile = userRole === "Student" || userRole === "Teacher" || userRole === "Parent";
 
   return (
-    <div style={{ background: '#fdf6e9', minHeight: '100vh', fontFamily: 'Arial' }}>
+    <div style={{ background: '#f4f5fb', minHeight: '100vh', fontFamily: 'Arial' }}>
       <SideMenu
         role={userRole}
         activeView={activeView}
@@ -246,7 +246,7 @@ function App() {
         setIsOpen={setMenuOpen}
       />
 
-      <div style={{ background: '#62479e', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
+      <div style={{ background: '#4338ca', color: 'white', padding: '16px 20px', display: 'grid', gridTemplateColumns: '40px 1fr 40px', alignItems: 'center' }}>
         <button
           onClick={() => setMenuOpen(true)}
           style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer', justifySelf: 'start' }}

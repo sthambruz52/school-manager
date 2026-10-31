@@ -1,15 +1,35 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
-
-const CLOUDINARY_CLOUD_NAME = "tatfep5k";
-const CLOUDINARY_UPLOAD_PRESET = "School Photos";
+import { Trophy, Plus, X, Trash2 } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import EmptyState from "./ui/EmptyState";
+import ImagePicker from "./ui/ImagePicker";
 
 const CATEGORIES = ["Sports", "Awards", "Quiz Competition", "Debate Competition", "Events"];
 const OTHER_VALUE = "__OTHER__";
+const COLORS = {
+  Sports: "#16a34a",
+  Awards: "#d97706",
+  "Quiz Competition": "#9333ea",
+  "Debate Competition": "#0284c7",
+  Events: "#4f46e5"
+};
+
+const when = (ts) => {
+  const d = ts?.toDate ? ts.toDate() : ts ? new Date(ts) : null;
+  return d && !isNaN(d.getTime())
+    ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "";
+};
 
 export default function Activities({ isAdmin }) {
   const [posts, setPosts] = useState([]);
+  const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Sports");
   const [manualCategory, setManualCategory] = useState("");
@@ -18,7 +38,7 @@ export default function Activities({ isAdmin }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const isManualCategory = category === OTHER_VALUE;
+  const isManual = category === OTHER_VALUE;
 
   useEffect(() => {
     const q = query(collection(db, "activities"), orderBy("createdAt", "desc"));
@@ -28,48 +48,28 @@ export default function Activities({ isAdmin }) {
     return () => unsub();
   }, []);
 
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        { method: "POST", body: formData }
-      );
-      const data = await res.json();
-
-      if (data.secure_url) {
-        setPhotoURL(data.secure_url);
-      } else {
-        alert("Upload failed. Please try again.");
-      }
-    } catch (err) {
-      alert("Upload failed. Check your internet connection.");
-    }
-    setUploading(false);
-  };
-
   const addPost = async () => {
     if (!title.trim() || !description.trim()) return alert("Enter a title and description.");
-
-    const finalCategory = isManualCategory ? manualCategory.trim() : category;
+    const finalCategory = isManual ? manualCategory.trim() : category;
     if (!finalCategory) return alert("Enter a category name.");
 
     setSaving(true);
-    await addDoc(collection(db, "activities"), {
-      title: title.trim(),
-      category: finalCategory,
-      description: description.trim(),
-      photoURL,
-      createdAt: new Date()
-    });
-    setTitle(""); setDescription(""); setPhotoURL(""); setManualCategory("");
+    try {
+      await addDoc(collection(db, "activities"), {
+        title: title.trim(),
+        category: finalCategory,
+        description: description.trim(),
+        photoURL,
+        createdAt: new Date()
+      });
+      setTitle("");
+      setDescription("");
+      setPhotoURL("");
+      setManualCategory("");
+      setShowForm(false);
+    } catch (err) {
+      alert("Could not post the update. Please try again.");
+    }
     setSaving(false);
   };
 
@@ -77,81 +77,102 @@ export default function Activities({ isAdmin }) {
     if (confirm("Remove this post?")) await deleteDoc(doc(db, "activities", id));
   };
 
-  const categoryColor = (c) => {
-    if (c === "Sports") return "#1f4d3a";
-    if (c === "Awards") return "#c2704e";
-    if (c === "Quiz Competition") return "#8e44ad";
-    if (c === "Debate Competition") return "#d4a017";
-    if (c === "Events") return "#3a6ea5";
-    return "#666";
-  };
-
-  const inputStyle = { padding: "8px", borderRadius: "6px" };
-
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>School Activities</h2>
-
-      {isAdmin && (
-        <div style={{ background: "white", padding: "16px", borderRadius: "10px", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (e.g. Inter-House Sports 2026)" style={inputStyle} />
-
-          <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            <option value={OTHER_VALUE}>Manual Input</option>
-          </select>
-
-          {isManualCategory && (
-            <input
-              value={manualCategory}
-              onChange={(e) => setManualCategory(e.target.value)}
-              placeholder="Type category name"
-              style={inputStyle}
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title="School Activities"
+        subtitle="Sports, awards and events"
+        rightSlot={
+          isAdmin ? (
+            <HeaderAction
+              icon={showForm ? <X size={16} /> : <Plus size={16} />}
+              label={showForm ? "Close" : "New Post"}
+              onClick={() => setShowForm(!showForm)}
             />
-          )}
+          ) : null
+        }
+      />
 
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What happened?"
-            rows={3}
-            style={{ ...inputStyle, resize: "vertical", fontFamily: "Arial" }}
-          />
+      {isAdmin && showForm && (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (e.g. Inter-House Sports 2026)" style={field} />
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {photoURL && <img src={photoURL} alt="" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "6px" }} />}
-            <label style={{ background: "#1f4d3a", color: "white", padding: "6px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
-              {uploading ? "Uploading..." : photoURL ? "Change Photo" : "Add Photo (optional)"}
-              <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploading} style={{ display: "none" }} />
-            </label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} style={field}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value={OTHER_VALUE}>Manual Input</option>
+            </select>
+            {isManual && (
+              <input value={manualCategory} onChange={(e) => setManualCategory(e.target.value)} placeholder="Type category name" style={field} />
+            )}
+
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What happened?"
+              rows={3}
+              style={{ ...field, resize: "vertical", fontFamily: "Arial" }}
+            />
+
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              {photoURL && (
+                <img src={photoURL} alt="" style={{ width: "88px", height: "64px", objectFit: "cover", borderRadius: "8px" }} />
+              )}
+              <ImagePicker
+                label={photoURL ? "Change Photo" : "Add Photo (optional)"}
+                onUploaded={setPhotoURL}
+                onBusyChange={setUploading}
+              />
+            </div>
+
+            <Button full onClick={addPost} disabled={saving || uploading}>
+              {saving ? "Posting..." : "Post Update"}
+            </Button>
           </div>
-
-          <button onClick={addPost} disabled={saving || uploading} style={{ background: "#1f4d3a", color: "white", padding: "8px 20px", borderRadius: "6px", border: "none" }}>
-            {saving ? "Posting..." : "Post Update"}
-          </button>
-        </div>
+        </Card>
       )}
 
       {posts.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No activities posted yet.</p>
+        <EmptyState icon={Trophy} text="No activities posted yet." />
       ) : (
-        posts.map((p) => (
-          <div key={p.id} style={{ background: "white", borderRadius: "10px", margin: "10px 0", overflow: "hidden" }}>
-            {p.photoURL && <img src={p.photoURL} alt="" style={{ width: "100%", maxHeight: "220px", objectFit: "cover", display: "block" }} />}
-            <div style={{ padding: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ background: categoryColor(p.category), color: "white", padding: "2px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "bold" }}>
-                  {p.category}
-                </span>
-                {isAdmin && (
-                  <button onClick={() => removePost(p.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "2px 8px" }}>x</button>
+        <div style={{ marginTop: "14px" }}>
+          {posts.map((p) => {
+            const color = COLORS[p.category] || "#64748b";
+            return (
+              <Card key={p.id} style={{ padding: 0, overflow: "hidden" }}>
+                {p.photoURL && (
+                  <img src={p.photoURL} alt="" style={{ width: "100%", maxHeight: "230px", objectFit: "cover", display: "block" }} />
                 )}
-              </div>
-              <h3 style={{ margin: "8px 0 4px" }}>{p.title}</h3>
-              <p style={{ margin: 0, color: "#444", fontSize: "14px" }}>{p.description}</p>
-            </div>
-          </div>
-        ))
+                <div style={{ padding: "14px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+                    <span
+                      style={{
+                        background: `${color}22`,
+                        color,
+                        fontWeight: "700",
+                        fontSize: "12px",
+                        padding: "4px 10px",
+                        borderRadius: "999px"
+                      }}
+                    >
+                      {p.category}
+                    </span>
+                    <span style={{ fontSize: "12px", color: theme.colors.textMuted }}>{when(p.createdAt)}</span>
+                  </div>
+                  <div style={{ fontWeight: "800", fontSize: "17px", color: theme.colors.text, margin: "10px 0 4px" }}>{p.title}</div>
+                  <p style={{ margin: 0, color: "#374151", fontSize: "14px", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{p.description}</p>
+                  {isAdmin && (
+                    <div style={{ marginTop: "12px" }}>
+                      <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => removePost(p.id)}>
+                        Delete
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

@@ -1,21 +1,33 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { Plus, X, Pencil, Trash2, Users } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import Avatar from "./ui/Avatar";
+import EmptyState from "./ui/EmptyState";
+import ImagePicker from "./ui/ImagePicker";
 import StaffIDCardButton from "./StaffIDCardButton";
-const CLOUDINARY_CLOUD_NAME = "tatfep5k";
-const CLOUDINARY_UPLOAD_PRESET = "School Photos";
 
 export default function StaffDirectory({ isAdmin }) {
   const [staff, setStaff] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState("");
+
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [department, setDepartment] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [sex, setSex] = useState("");
   const [photoURL, setPhotoURL] = useState("");
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -39,6 +51,8 @@ export default function StaffDirectory({ isAdmin }) {
             department: (d.data().subjects || []).join(", "),
             phone: d.data().phone || "",
             email: "",
+            dateOfBirth: d.data().dateOfBirth || "",
+            sex: d.data().sex || "",
             photoURL: d.data().photoURL || "",
             isTeacherAccount: true
           }))
@@ -47,36 +61,17 @@ export default function StaffDirectory({ isAdmin }) {
     return () => unsub();
   }, []);
 
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadingPhoto(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        { method: "POST", body: formData }
-      );
-      const data = await res.json();
-
-      if (data.secure_url) {
-        setPhotoURL(data.secure_url);
-      } else {
-        alert("Photo upload failed. Please try again.");
-      }
-    } catch (err) {
-      alert("Photo upload failed. Check your internet connection.");
-    }
-    setUploadingPhoto(false);
-  };
-
   const resetForm = () => {
     setEditingId(null);
-    setName(""); setTitle(""); setDepartment(""); setPhone(""); setEmail(""); setPhotoURL("");
+    setName("");
+    setTitle("");
+    setDepartment("");
+    setPhone("");
+    setEmail("");
+    setDateOfBirth("");
+    setSex("");
+    setPhotoURL("");
+    setShowForm(false);
   };
 
   const startEdit = (s) => {
@@ -86,27 +81,36 @@ export default function StaffDirectory({ isAdmin }) {
     setDepartment(s.department || "");
     setPhone(s.phone || "");
     setEmail(s.email || "");
+    setDateOfBirth(s.dateOfBirth || "");
+    setSex(s.sex || "");
     setPhotoURL(s.photoURL || "");
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const saveStaff = async () => {
-    if (!name || !title) return alert("Enter at least a name and title/position.");
-
+    if (!name.trim() || !title.trim()) return alert("Enter at least a name and a title/position.");
     setSaving(true);
-
-    if (editingId) {
-      await updateDoc(doc(db, "staff", editingId), {
-        name, title, department, phone, email, photoURL
-      });
-    } else {
-      await addDoc(collection(db, "staff"), {
-        name, title, department, phone, email, photoURL,
-        createdAt: new Date()
-      });
+    const payload = {
+      name: name.trim(),
+      title: title.trim(),
+      department: department.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      dateOfBirth,
+      sex,
+      photoURL
+    };
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "staff", editingId), payload);
+      } else {
+        await addDoc(collection(db, "staff"), { ...payload, createdAt: new Date() });
+      }
+      resetForm();
+    } catch (err) {
+      alert("Could not save. Please try again.");
     }
-
-    resetForm();
     setSaving(false);
   };
 
@@ -114,91 +118,106 @@ export default function StaffDirectory({ isAdmin }) {
     if (confirm("Remove this staff member?")) await deleteDoc(doc(db, "staff", id));
   };
 
-  const combinedList = [
-    ...staff,
-    ...teachers
-  ].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-
-  const inputStyle = { padding: "8px", borderRadius: "6px" };
+  const combined = [...staff, ...teachers]
+    .filter((s) => !search || (s.name || "").toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>Staff & Management</h2>
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title="Staff & Management"
+        subtitle={`${staff.length + teachers.length} people`}
+        rightSlot={
+          isAdmin ? (
+            <HeaderAction
+              icon={showForm ? <X size={16} /> : <Plus size={16} />}
+              label={showForm ? "Close" : "Add Staff"}
+              onClick={() => (showForm ? resetForm() : setShowForm(true))}
+            />
+          ) : null
+        }
+      />
 
-      {isAdmin && (
-        <div style={{ background: "white", padding: "16px", borderRadius: "10px", marginBottom: "20px" }}>
-          {editingId && (
-            <p style={{ textAlign: "center", color: "#1f4d3a", fontWeight: "bold", marginTop: 0 }}>
-              Editing {name || "staff member"}
-            </p>
-          )}
-          <p style={{ textAlign: "center", fontSize: "12px", color: "#999", marginTop: 0 }}>
-            Use this form for staff without a login (e.g. Principal, Bursar). Registered Teachers appear automatically below.
+      {isAdmin && showForm && (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ fontWeight: "800", marginBottom: "4px", color: theme.colors.text }}>
+            {editingId ? `Editing ${name || "staff member"}` : "Add a staff member"}
+          </div>
+          <p style={{ fontSize: "12px", color: theme.colors.textMuted, margin: "0 0 12px" }}>
+            Use this for staff without a login (Principal, Bursar and so on). Registered teachers appear here automatically.
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-            {photoURL ? (
-              <img src={photoURL} alt="" style={{ width: "54px", height: "70px", borderRadius: "50%", objectFit: "cover" }} />
-            ) : (
-              <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "#fdf6e9",  }} />
-            )}
-            <label style={{ background: "#1f4d3a", color: "white", padding: "6px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>
-              {uploadingPhoto ? "Uploading..." : "Upload Photo"}
-              <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploadingPhoto} style={{ display: "none" }} />
-            </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "12px" }}>
+            <Avatar name={name || "?"} photoURL={photoURL} size={96} />
+            <ImagePicker
+              label={photoURL ? "Change Photo" : "Upload Photo"}
+              onUploaded={setPhotoURL}
+              onBusyChange={setUploading}
+            />
           </div>
 
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={inputStyle} />
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (e.g. Principal, Bursar)" style={inputStyle} />
-            <input value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department (optional)" style={inputStyle} />
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" style={inputStyle} />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" style={inputStyle} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={{ ...field, flex: "1 1 160px" }} />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (e.g. Principal, Bursar)" style={{ ...field, flex: "1 1 160px" }} />
+            <input value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department (optional)" style={{ ...field, flex: "1 1 160px" }} />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" style={{ ...field, flex: "1 1 160px" }} />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" style={{ ...field, flex: "1 1 160px" }} />
+            <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={{ ...field, flex: "1 1 160px" }} />
+            <select value={sex} onChange={(e) => setSex(e.target.value)} style={{ ...field, flex: "1 1 160px" }}>
+              <option value="">Select sex</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
           </div>
-          <div style={{ textAlign: "center", marginTop: "10px", display: "flex", gap: "8px", justifyContent: "center" }}>
-            <button onClick={saveStaff} disabled={saving || uploadingPhoto} style={{ background: "#1f4d3a", color: "white", padding: "8px 20px", borderRadius: "6px", border: "none" }}>
+
+          <div style={{ display: "flex", gap: "10px", marginTop: "14px" }}>
+            <Button full onClick={saveStaff} disabled={saving || uploading}>
               {saving ? "Saving..." : editingId ? "Update Staff Member" : "Add Staff Member"}
-            </button>
-            {editingId && (
-              <button onClick={resetForm} style={{ background: "white", color: "#1f4d3a", border: "1px solid #1f4d3a", padding: "8px 20px", borderRadius: "6px" }}>
-                Cancel
-              </button>
-            )}
+            </Button>
+            {editingId && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
           </div>
-        </div>
+        </Card>
       )}
 
-      {combinedList.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No staff added yet.</p>
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name..."
+        style={{ ...field, width: "100%", margin: "14px 0 4px" }}
+      />
+
+      {combined.length === 0 ? (
+        <EmptyState icon={Users} text={search ? "No one matches that search." : "No staff added yet."} />
       ) : (
-        combinedList.map((s) => (
-          <div key={s.id} style={{ background: "white", padding: "14px", margin: "8px 0", borderRadius: "10px", display: "flex", alignItems: "center", gap: "14px" }}>
-            {s.photoURL ? (
-              <img src={s.photoURL} alt="" style={{ width: "44px", height: "56px", borderRadius: "0px", objectFit: "cover" }} />
-            ) : (
-              <div style={{ width: "44px", height: "56px", borderRadius: "0px", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
-                {s.name?.charAt(0).toUpperCase()}
+        combined.map((s) => (
+          <Card key={s.id}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <Avatar name={s.name} photoURL={s.photoURL} size={64} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: "800", color: theme.colors.text }}>{s.name}</div>
+                <div style={{ fontSize: "13px", color: theme.colors.primary, fontWeight: "600" }}>
+                  {s.title}{s.department ? ` • ${s.department}` : ""}
+                </div>
+                {(s.phone || s.email) && (
+                  <div style={{ fontSize: "12px", color: theme.colors.textMuted, marginTop: "2px", wordBreak: "break-word" }}>
+                    {[s.phone, s.email].filter(Boolean).join(" • ")}
+                  </div>
+                )}
               </div>
-            )}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: "bold" }}>{s.name}</div>
-              <div style={{ color: "#1f4d3a" }}>{s.title}{s.department && ` — ${s.department}`}</div>
-              {(s.phone || s.email) && (
-                <div style={{ fontSize: "13px", color: "#666" }}>{s.phone} {s.phone && s.email && "·"} {s.email}</div>
-              )}
             </div>
+
             {isAdmin && (
-              <div style={{ display: "flex", gap: "6px" }}>
+              <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap", alignItems: "center" }}>
                 <StaffIDCardButton staffMember={s} />
                 {!s.isTeacherAccount && (
                   <>
-                    <button onClick={() => startEdit(s)} style={{ background: "#1f4d3a", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>Edit</button>
-                    <button onClick={() => removeStaff(s.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px" }}>x</button>
+                    <Button size="sm" variant="outline" icon={<Pencil size={14} />} onClick={() => startEdit(s)}>Edit</Button>
+                    <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => removeStaff(s.id)}>Delete</Button>
                   </>
                 )}
               </div>
             )}
-          </div>
+          </Card>
         ))
       )}
     </div>
