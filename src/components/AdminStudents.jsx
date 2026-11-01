@@ -1,244 +1,241 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { Download, ChevronDown, ChevronUp, Pencil, UserX, UserCheck, Users } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import Avatar from "./ui/Avatar";
+import StatusPill from "./ui/StatusPill";
+import EmptyState from "./ui/EmptyState";
 import StudentProfile from "./StudentProfile";
 import ParentProfile from "./ParentProfile";
 import TeacherProfile from "./TeacherProfile";
 import { exportToCSV } from "../utils/exportCSV";
 
+const TABS = [["students", "Students"], ["parents", "Parents"], ["teachers", "Teachers"]];
+const ROLE_OF = { students: "Student", parents: "Parent", teachers: "Teacher" };
+
+const addr = (a) => [a?.street, a?.lga, a?.city, a?.state, a?.country].filter(Boolean).join(", ");
+
+const prettyDate = (v) => {
+  const d = v ? new Date(v) : null;
+  return d && !isNaN(d.getTime())
+    ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "-";
+};
+
+function Detail({ label, children }) {
+  return (
+    <div style={{ display: "flex", gap: "10px", fontSize: "13px", padding: "4px 0" }}>
+      <span style={{ width: "108px", flexShrink: 0, color: theme.colors.textMuted }}>{label}</span>
+      <span style={{ flex: 1, color: theme.colors.text, wordBreak: "break-word" }}>{children || "-"}</span>
+    </div>
+  );
+}
+
+function PhoneLink({ value }) {
+  if (!value) return "-";
+  const digits = String(value).replace(/[^0-9+]/g, "");
+  return <a href={`tel:${digits}`} style={{ color: theme.colors.primary, fontWeight: "600" }}>{value}</a>;
+}
+
 export default function AdminStudents({ isAdmin = true }) {
-  const [activeTab, setActiveTab] = useState("students");
-  const [students, setStudents] = useState([]);
-  const [parents, setParents] = useState([]);
-  const [teachers, setTeachers] = useState([]);
+  const [tab, setTab] = useState("students");
+  const [lists, setLists] = useState({ students: [], parents: [], teachers: [] });
   const [expandedId, setExpandedId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "Student"));
-    const unsub = onSnapshot(q, (snap) => setStudents(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "Parent"));
-    const unsub = onSnapshot(q, (snap) => setParents(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "Teacher"));
-    const unsub = onSnapshot(q, (snap) => setTeachers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
+    const unsubs = Object.entries(ROLE_OF).map(([key, role]) => {
+      const q = query(collection(db, "users"), where("role", "==", role));
+      return onSnapshot(q, (snap) => {
+        setLists((prev) => ({ ...prev, [key]: snap.docs.map((d) => ({ id: d.id, ...d.data() })) }));
+      });
+    });
+    return () => unsubs.forEach((u) => u());
   }, []);
 
   const toggleStatus = async (userId, currentStatus) => {
     const newStatus = currentStatus === "disabled" ? "active" : "disabled";
     if (!confirm(`${newStatus === "disabled" ? "Disable" : "Enable"} this account?`)) return;
-    await updateDoc(doc(db, "users", userId), { status: newStatus });
+    try {
+      await updateDoc(doc(db, "users", userId), { status: newStatus });
+    } catch (err) {
+      alert("Could not update the account. Please try again.");
+    }
   };
 
   const handleExport = () => {
-    if (activeTab === "students") {
-      const headers = ["Full Name", "Class", "Session", "Term", "Subjects", "Parent Name", "Parent Phone", "Parent Email", "Status"];
-      const rows = students.map((s) => [
-        s.fullName || "", s.classLevel || "", s.session || "", s.term || "",
-        (s.subjects || []).join("; "), s.parentName || "", s.parentPhone || "", s.parentEmail || "", s.status || "active"
-      ]);
-      exportToCSV("students.csv", headers, rows);
-    } else if (activeTab === "parents") {
-      const headers = ["Full Name", "Phone", "Email", "Children", "Status"];
-      const rows = parents.map((p) => [
-        p.fullName || "", p.phone || "", p.email || "",
-        (p.children || []).map((c) => c.name).join("; "), p.status || "active"
-      ]);
-      exportToCSV("parents.csv", headers, rows);
+    if (tab === "students") {
+      exportToCSV(
+        "students.csv",
+        ["Full Name", "Reg. Number", "Class", "Session", "Term", "Date of Birth", "Sex", "Subjects", "Email", "Parent Name", "Parent Phone", "Parent Email", "Status"],
+        lists.students.map((s) => [
+          s.fullName || "", s.regNumber || "", s.classLevel || "", s.session || "", s.term || "",
+          s.dateOfBirth || "", s.sex || "", (s.subjects || []).join("; "), s.email || "",
+          s.parentName || "", s.parentPhone || "", s.parentEmail || "", s.status || "active"
+        ])
+      );
+    } else if (tab === "parents") {
+      exportToCSV(
+        "parents.csv",
+        ["Full Name", "Phone", "Email", "Children", "Status"],
+        lists.parents.map((p) => [
+          p.fullName || "", p.phone || "", p.email || "",
+          (p.children || []).map((c) => c.name).join("; "), p.status || "active"
+        ])
+      );
     } else {
-      const headers = ["Full Name", "Phone", "Subjects", "Status"];
-      const rows = teachers.map((t) => [
-        t.fullName || "", t.phone || "", (t.subjects || []).join("; "), t.status || "active"
-      ]);
-      exportToCSV("teachers.csv", headers, rows);
+      exportToCSV(
+        "teachers.csv",
+        ["Full Name", "Staff ID", "Phone", "Email", "Date of Birth", "Sex", "Subjects", "Status"],
+        lists.teachers.map((t) => [
+          t.fullName || "", t.staffId || "", t.phone || "", t.email || "",
+          t.dateOfBirth || "", t.sex || "", (t.subjects || []).join("; "), t.status || "active"
+        ])
+      );
     }
   };
 
   if (editingUser) {
-    const Comp = editingUser.role === "Student" ? StudentProfile : editingUser.role === "Teacher" ? TeacherProfile : ParentProfile;
-    return (
-      <Comp
-        existingData={editingUser.data}
-        targetUid={editingUser.uid}
-        onComplete={() => setEditingUser(null)}
-      />
-    );
+    const Comp =
+      editingUser.role === "Student" ? StudentProfile : editingUser.role === "Teacher" ? TeacherProfile : ParentProfile;
+    return <Comp existingData={editingUser.data} targetUid={editingUser.uid} onComplete={() => setEditingUser(null)} />;
   }
 
-  const cardStyle = { background: "white", padding: "12px", margin: "8px 0", borderRadius: "8px" };
-  const tabStyle = (active) => ({
-    padding: "8px 16px",
-    borderRadius: "6px",
-    border: "none",
-    cursor: "pointer",
-    background: active ? "#1f4d3a" : "white",
-    color: active ? "white" : "#1f4d3a",
-    fontWeight: "bold"
-  });
+  const subtitleFor = (p) => {
+    if (tab === "students") return `${p.classLevel || "No class set"}${p.regNumber ? ` • ${p.regNumber}` : ""}`;
+    if (tab === "parents") return p.children?.length ? `Ward: ${p.children.map((c) => c.name).join(", ")}` : "No ward linked";
+    return p.subjects?.length ? p.subjects.join(", ") : "No subjects set";
+  };
 
-  const filteredList = (list, nameKey) =>
-    list.filter((item) => (item[nameKey] || "").toLowerCase().includes(searchTerm.toLowerCase()));
+  const current = lists[tab]
+    .filter((p) => !search || (p.fullName || "").toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
 
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>Students, Parents & Teachers</h2>
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title="People"
+        subtitle={`${lists.students.length} students • ${lists.parents.length} parents • ${lists.teachers.length} teachers`}
+        rightSlot={isAdmin ? <HeaderAction icon={<Download size={16} />} label="Export" onClick={handleExport} /> : null}
+      />
 
-      <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
-        <button onClick={() => setActiveTab("students")} style={tabStyle(activeTab === "students")}>Students ({students.length})</button>
-        <button onClick={() => setActiveTab("parents")} style={tabStyle(activeTab === "parents")}>Parents ({parents.length})</button>
-        <button onClick={() => setActiveTab("teachers")} style={tabStyle(activeTab === "teachers")}>Teachers ({teachers.length})</button>
-        {isAdmin && (
-          <button onClick={handleExport} style={{ padding: "8px 16px", borderRadius: "6px", border: "1px solid #1f4d3a", background: "white", color: "#1f4d3a", fontWeight: "bold", cursor: "pointer" }}>
-            Export CSV
+      <div style={{ display: "flex", background: "#e6e8f5", borderRadius: theme.radius.md, padding: "4px", margin: "14px 0 6px" }}>
+        {TABS.map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => { setTab(key); setExpandedId(null); }}
+            style={{
+              flex: 1,
+              border: "none",
+              borderRadius: theme.radius.sm,
+              padding: "10px 4px",
+              fontWeight: "700",
+              fontSize: "13px",
+              background: tab === key ? theme.colors.primary : "transparent",
+              color: tab === key ? "white" : theme.colors.textMuted
+            }}
+          >
+            {label} ({lists[key].length})
           </button>
-        )}
+        ))}
       </div>
 
       <input
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name..."
-        style={{ display: "block", margin: "0 auto 16px", padding: "10px", borderRadius: "6px", width: "260px", maxWidth: "90%" }}
+        style={{ ...field, width: "100%", margin: "8px 0 4px" }}
       />
 
-      {activeTab === "students" && (
-        filteredList(students, "fullName").length === 0 ? (
-          <p style={{ textAlign: "center", color: "#666" }}>No students registered yet.</p>
-        ) : (
-          filteredList(students, "fullName").map((s) => (
-            <div key={s.id} style={cardStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
-                {s.photoURL ? (
-                  <img src={s.photoURL} alt="" style={{ width: "34px", height: "44px", borderRadius: "0px", objectFit: "cover" }} />
-                ) : (
-                  <div style={{width: "34px", height: "44px", borderRadius: "0px", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
-                    {s.fullName?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold" }}>{s.fullName || "(no name)"}</div>
-                  <div style={{ fontSize: "13px", color: "#666" }}>{s.classLevel || "No class set"}</div>
+      {current.length === 0 ? (
+        <EmptyState icon={Users} text={search ? "No one matches that search." : `No ${tab} registered yet.`} />
+      ) : (
+        current.map((p) => {
+          const open = expandedId === p.id;
+          const disabled = p.status === "disabled";
+          return (
+            <Card key={p.id} style={{ padding: 0, overflow: "hidden" }}>
+              <div
+                onClick={() => setExpandedId(open ? null : p.id)}
+                style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", cursor: "pointer" }}
+              >
+                <Avatar name={p.fullName} photoURL={p.photoURL} size={56} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: "700", color: theme.colors.text }}>{p.fullName || "(no name)"}</div>
+                  <div style={{ fontSize: "12px", color: theme.colors.textMuted }}>{subtitleFor(p)}</div>
                 </div>
-                {s.status === "disabled" && (
-                  <span style={{ background: "#c2704e", color: "white", fontSize: "11px", padding: "2px 8px", borderRadius: "10px" }}>Disabled</span>
-                )}
+                {disabled && <StatusPill label="Disabled" variant="danger" />}
+                {open ? <ChevronUp size={20} color={theme.colors.textMuted} /> : <ChevronDown size={20} color={theme.colors.textMuted} />}
               </div>
 
-              {expandedId === s.id && (
-                <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee", fontSize: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div><strong>Session:</strong> {s.session || "—"} &nbsp; <strong>Term:</strong> {s.term || "—"}</div>
-                  <div><strong>Subjects:</strong> {s.subjects?.length ? s.subjects.join(", ") : "—"}</div>
-                  <div><strong>Address:</strong> {[s.address?.street, s.address?.lga, s.address?.city, s.address?.state, s.address?.country].filter(Boolean).join(", ") || "—"}</div>
-                  <div style={{ marginTop: "6px" }}><strong>Parent:</strong> {s.parentName || "—"}</div>
-                  <div><strong>Parent Phone:</strong> {s.parentPhone || "—"}</div>
-                  <div><strong>Parent Email:</strong> {s.parentEmail || "—"}</div>
-                  <div><strong>Parent Address:</strong> {[s.parentAddress?.street, s.parentAddress?.lga, s.parentAddress?.city, s.parentAddress?.state, s.parentAddress?.country].filter(Boolean).join(", ") || "—"}</div>
+              {open && (
+                <div style={{ borderTop: `1px solid ${theme.colors.border}`, padding: "10px 14px 14px" }}>
+                  {tab === "students" && (
+                    <>
+                      
+                      <Detail label="Date of birth">{prettyDate(p.dateOfBirth)}</Detail>
+                      <Detail label="Sex">{p.sex}</Detail>
+                      <Detail label="Session / Term">{[p.session, p.term].filter(Boolean).join(" • ")}</Detail>
+                      <Detail label="Subjects">{p.subjects?.length ? p.subjects.join(", ") : ""}</Detail>
+                      <Detail label="Email">{p.email}</Detail>
+                      <Detail label="Address">{addr(p.address)}</Detail>
+                      <Detail label="Parent">{p.parentName}</Detail>
+                      <Detail label="Parent phone"><PhoneLink value={p.parentPhone} /></Detail>
+                      <Detail label="Parent email">{p.parentEmail}</Detail>
+                      <Detail label="Parent address">{addr(p.parentAddress)}</Detail>
+                    </>
+                  )}
+
+                  {tab === "parents" && (
+                    <>
+                      <Detail label="Phone"><PhoneLink value={p.phone} /></Detail>
+                      <Detail label="Email">{p.email}</Detail>
+                      <Detail label="Ward(s)">{p.children?.length ? p.children.map((c) => c.name).join(", ") : ""}</Detail>
+                    </>
+                  )}
+
+                  {tab === "teachers" && (
+                    <>
+                      <Detail label="Staff ID">{p.staffId}</Detail>
+                      <Detail label="Phone"><PhoneLink value={p.phone} /></Detail>
+                      <Detail label="Email">{p.email}</Detail>
+                      <Detail label="Date of birth">{prettyDate(p.dateOfBirth)}</Detail>
+                      <Detail label="Sex">{p.sex}</Detail>
+                      <Detail label="Address">{addr(p.address)}</Detail>
+                    </>
+                  )}
 
                   {isAdmin && (
-                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                      <button onClick={() => setEditingUser({ uid: s.id, role: "Student", data: s })} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>Edit</button>
-                      <button onClick={() => toggleStatus(s.id, s.status)} style={{ background: s.status === "disabled" ? "#1f4d3a" : "#c2704e", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>
-                        {s.status === "disabled" ? "Enable Account" : "Disable Account"}
-                      </button>
+                    <div style={{ display: "flex", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon={<Pencil size={14} />}
+                        onClick={() => setEditingUser({ uid: p.id, role: ROLE_OF[tab], data: p })}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={disabled ? "primary" : "danger"}
+                        icon={disabled ? <UserCheck size={14} /> : <UserX size={14} />}
+                        onClick={() => toggleStatus(p.id, p.status)}
+                      >
+                        {disabled ? "Enable Account" : "Disable Account"}
+                      </Button>
                     </div>
                   )}
                 </div>
               )}
-            </div>
-          ))
-        )
-      )}
-
-      {activeTab === "parents" && (
-        filteredList(parents, "fullName").length === 0 ? (
-          <p style={{ textAlign: "center", color: "#666" }}>No parents registered yet.</p>
-        ) : (
-          filteredList(parents, "fullName").map((p) => (
-            <div key={p.id} style={cardStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
-                <div style={{ width: "34px", height: "44px", borderRadius: "0px", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
-                  {p.fullName?.charAt(0).toUpperCase() || "?"}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold" }}>{p.fullName || "(no name)"}</div>
-                  <div style={{ fontSize: "13px", color: "#666" }}>{p.children?.length ? `${p.children.length} ward(s) linked` : "No ward linked"}</div>
-                </div>
-                {p.status === "disabled" && (
-                  <span style={{ background: "#c2704e", color: "white", fontSize: "11px", padding: "2px 8px", borderRadius: "10px" }}>Disabled</span>
-                )}
-              </div>
-
-              {expandedId === p.id && (
-                <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee", fontSize: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div><strong>Phone:</strong> {p.phone || "—"}</div>
-                  <div><strong>Email:</strong> {p.email || "—"}</div>
-                  <div><strong>Ward(s):</strong> {p.children?.length ? p.children.map(c => c.name).join(", ") : "—"}</div>
-
-                  {isAdmin && (
-                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                      <button onClick={() => setEditingUser({ uid: p.id, role: "Parent", data: p })} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>Edit</button>
-                      <button onClick={() => toggleStatus(p.id, p.status)} style={{ background: p.status === "disabled" ? "#1f4d3a" : "#c2704e", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>
-                        {p.status === "disabled" ? "Enable Account" : "Disable Account"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))
-        )
-      )}
-
-      {activeTab === "teachers" && (
-        filteredList(teachers, "fullName").length === 0 ? (
-          <p style={{ textAlign: "center", color: "#666" }}>No teachers registered yet.</p>
-        ) : (
-          filteredList(teachers, "fullName").map((t) => (
-            <div key={t.id} style={cardStyle}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}>
-                {t.photoURL ? (
-                  <img src={t.photoURL} alt="" style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "#1f4d3a" }}>
-                    {t.fullName?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold" }}>{t.fullName || "(no name)"}</div>
-                  <div style={{ fontSize: "13px", color: "#666" }}>{t.subjects?.length ? t.subjects.join(", ") : "No subjects set"}</div>
-                </div>
-                {t.status === "disabled" && (
-                  <span style={{ background: "#c2704e", color: "white", fontSize: "11px", padding: "2px 8px", borderRadius: "10px" }}>Disabled</span>
-                )}
-              </div>
-
-              {expandedId === t.id && (
-                <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #eee", fontSize: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div><strong>Phone:</strong> {t.phone || "—"}</div>
-                  <div><strong>Address:</strong> {[t.address?.street, t.address?.lga, t.address?.city, t.address?.state, t.address?.country].filter(Boolean).join(", ") || "—"}</div>
-
-                  {isAdmin && (
-                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                      <button onClick={() => setEditingUser({ uid: t.id, role: "Teacher", data: t })} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>Edit</button>
-                      <button onClick={() => toggleStatus(t.id, t.status)} style={{ background: t.status === "disabled" ? "#1f4d3a" : "#c2704e", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px" }}>
-                        {t.status === "disabled" ? "Enable Account" : "Disable Account"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))
-        )
+            </Card>
+          );
+        })
       )}
     </div>
   );

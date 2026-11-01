@@ -56,11 +56,13 @@ function App() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      if (!firebaseUser) {
+      if (!firebaseUser || firebaseUser.isAnonymous) {
+        setUser(null);
         setUserRole("");
         setUserData(null);
         setAuthChecked(true);
+      } else {
+        setUser(firebaseUser);
       }
     });
     return () => unsub();
