@@ -1,140 +1,218 @@
-import { useState, useEffect } from 'react'
-import { db, auth } from '../firebase'
-import { collection, doc, setDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { useState, useEffect, useRef } from "react";
+import { db, auth } from "../firebase";
+import { collection, doc, setDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { Send, MessageCircle } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import Card from "./ui/Card";
+import Avatar from "./ui/Avatar";
+import StatusPill from "./ui/StatusPill";
+import EmptyState from "./ui/EmptyState";
+
+const clock = (ts) => {
+  const d = ts?.toDate ? ts.toDate() : null;
+  if (!d) return "";
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+};
 
 export default function SupportChat({ isAdmin, userName, userRole }) {
-  const [threads, setThreads] = useState([])
-  const [selectedUserId, setSelectedUserId] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [text, setText] = useState('')
+  const [threads, setThreads] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const listRef = useRef(null);
 
-  const myUid = auth.currentUser.uid
-  const activeThreadId = isAdmin ? selectedUserId : myUid
+  const myUid = auth.currentUser?.uid;
+  const activeThreadId = isAdmin ? selectedUserId : myUid;
+  const activeThread = threads.find((t) => t.id === activeThreadId);
 
-  // Admin: listen to all chat threads
   useEffect(() => {
-    if (!isAdmin) return
-    const q = query(collection(db, 'supportChats'), orderBy('lastMessageAt', 'desc'))
-    const unsub = onSnapshot(q, (snap) => {
-      setThreads(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    })
-    return () => unsub()
-  }, [isAdmin])
+    if (!isAdmin) return;
+    const q = query(collection(db, "supportChats"), orderBy("lastMessageAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => setThreads(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return () => unsub();
+  }, [isAdmin]);
 
-  // Everyone: listen to messages in the active thread
   useEffect(() => {
-    if (!activeThreadId) { setMessages([]); return }
-    const q = query(collection(db, 'supportChats', activeThreadId, 'messages'), orderBy('createdAt', 'asc'))
-    const unsub = onSnapshot(q, (snap) => {
-      setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    })
-    return () => unsub()
-  }, [activeThreadId])
+    if (!activeThreadId) { setMessages([]); return; }
+    const q = query(collection(db, "supportChats", activeThreadId, "messages"), orderBy("createdAt", "asc"));
+    const unsub = onSnapshot(q, (snap) => setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return () => unsub();
+  }, [activeThreadId]);
 
-  // Mark thread as read when opened
   useEffect(() => {
-    if (!activeThreadId) return
-    const field = isAdmin ? { unreadByAdmin: false } : { unreadByUser: false }
-    setDoc(doc(db, 'supportChats', activeThreadId), field, { merge: true }).catch(() => {})
-  }, [activeThreadId, isAdmin])
+    if (!activeThreadId) return;
+    const flag = isAdmin ? { unreadByAdmin: false } : { unreadByUser: false };
+    setDoc(doc(db, "supportChats", activeThreadId), flag, { merge: true }).catch(() => {});
+  }, [activeThreadId, isAdmin, messages.length]);
+
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages.length, activeThreadId]);
 
   const sendMessage = async () => {
-    if (!text.trim() || !activeThreadId) return
-
-    await setDoc(doc(db, 'supportChats', activeThreadId), {
-      userName: isAdmin ? (threads.find(t => t.id === activeThreadId)?.userName || '') : userName,
-      userRole: isAdmin ? (threads.find(t => t.id === activeThreadId)?.userRole || '') : userRole,
-      lastMessage: text.trim(),
-      lastMessageAt: serverTimestamp(),
-      unreadByAdmin: !isAdmin,
-      unreadByUser: isAdmin
-    }, { merge: true })
-
-    await addDoc(collection(db, 'supportChats', activeThreadId, 'messages'), {
-      senderId: myUid,
-      senderName: isAdmin ? 'Admin' : userName,
-      senderRole: isAdmin ? 'Admin' : userRole,
-      text: text.trim(),
-      createdAt: serverTimestamp()
-    })
-
-    setText('')
-  }
-
-  const bubbleStyle = (isMine) => ({
-    alignSelf: isMine ? 'flex-end' : 'flex-start',
-    background: isMine ? '#1f4d3a' : 'white',
-    color: isMine ? 'white' : '#333',
-    padding: '8px 12px',
-    borderRadius: '12px',
-    maxWidth: '75%',
-    fontSize: '14px'
-  })
+    const body = text.trim();
+    if (!body || !activeThreadId || sending) return;
+    setSending(true);
+    try {
+      await setDoc(
+        doc(db, "supportChats", activeThreadId),
+        {
+          userName: isAdmin ? activeThread?.userName || "" : userName,
+          userRole: isAdmin ? activeThread?.userRole || "" : userRole,
+          lastMessage: body,
+          lastMessageAt: serverTimestamp(),
+          unreadByAdmin: !isAdmin,
+          unreadByUser: isAdmin
+        },
+        { merge: true }
+      );
+      await addDoc(collection(db, "supportChats", activeThreadId, "messages"), {
+        senderId: myUid,
+        senderName: isAdmin ? "Admin" : userName,
+        senderRole: isAdmin ? "Admin" : userRole,
+        text: body,
+        createdAt: serverTimestamp()
+      });
+      setText("");
+    } catch (err) {
+      alert("Could not send the message. Check your connection and try again.");
+    }
+    setSending(false);
+  };
 
   if (isAdmin && !selectedUserId) {
     return (
-      <div style={{ marginTop: '20px' }}>
-        <h2 style={{ textAlign: 'center' }}>Support Chat</h2>
+      <div style={{ marginTop: "10px" }}>
+        <Header title="Support Chat" subtitle={`${threads.length} conversation${threads.length !== 1 ? "s" : ""}`} />
         {threads.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#666' }}>No conversations yet.</p>
+          <EmptyState icon={MessageCircle} text="No conversations yet." />
         ) : (
-          threads.map(t => (
-            <div
-              key={t.id}
-              onClick={() => setSelectedUserId(t.id)}
-              style={{ background: 'white', padding: '14px', margin: '8px 0', borderRadius: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-            >
-              <div>
-                <div style={{ fontWeight: 'bold' }}>{t.userName} <span style={{ fontWeight: 'normal', fontSize: '12px', color: '#888' }}>({t.userRole})</span></div>
-                <div style={{ fontSize: '13px', color: '#666' }}>{t.lastMessage}</div>
-              </div>
-              {t.unreadByAdmin && <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#c2704e' }} />}
-            </div>
-          ))
+          <div style={{ marginTop: "14px" }}>
+            {threads.map((t) => (
+              <Card key={t.id} onClick={() => setSelectedUserId(t.id)}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <Avatar name={t.userName || "?"} size={48} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: "700", color: theme.colors.text }}>{t.userName || "Unknown"}</span>
+                      {t.userRole && <StatusPill label={t.userRole} variant="info" />}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: theme.colors.textMuted,
+                        marginTop: "2px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
+                    >
+                      {t.lastMessage}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: "11px", color: theme.colors.textMuted }}>{clock(t.lastMessageAt)}</div>
+                    {t.unreadByAdmin && (
+                      <span
+                        style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", background: theme.colors.primary, marginTop: "6px" }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
-    )
+    );
   }
 
   return (
-    <div style={{ marginTop: '20px', maxWidth: '600px', margin: '20px auto' }}>
-      {isAdmin && (
-        <p onClick={() => setSelectedUserId(null)} style={{ color: '#1f4d3a', cursor: 'pointer', fontWeight: 'bold' }}>
-          ← Back to conversations
-        </p>
-      )}
-      <h2 style={{ textAlign: 'center' }}>{isAdmin ? threads.find(t => t.id === selectedUserId)?.userName : 'Support Chat'}</h2>
-      <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', marginTop: '-10px' }}>
-        {isAdmin ? 'Replying as Admin' : "Message our Admin team, we're here to help."}
-      </p>
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title={isAdmin ? activeThread?.userName || "Conversation" : "Support Chat"}
+        subtitle={isAdmin ? activeThread?.userRole || "" : "Message the school admin office"}
+        onBack={isAdmin ? () => setSelectedUserId(null) : undefined}
+      />
 
-      <div style={{ background: '#fdf6e9', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '300px', maxHeight: '400px', overflowY: 'auto' }}>
+      <div
+        ref={listRef}
+        style={{
+          margin: "14px 0 10px",
+          minHeight: "260px",
+          maxHeight: "calc(100vh - 380px)",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          padding: "4px"
+        }}
+      >
         {messages.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#999', margin: 'auto' }}>No messages yet. Say hello!</p>
+          <div style={{ textAlign: "center", color: theme.colors.textMuted, margin: "auto", fontSize: "14px" }}>
+            No messages yet. Say hello!
+          </div>
         ) : (
-          messages.map(m => (
-            <div key={m.id} style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={bubbleStyle(m.senderId === myUid)}>{m.text}</div>
-              <span style={{ fontSize: '10px', color: '#aaa', alignSelf: m.senderId === myUid ? 'flex-end' : 'flex-start', marginTop: '2px' }}>
-                {m.senderName}
-              </span>
-            </div>
-          ))
+          messages.map((m) => {
+            const mine = m.senderId === myUid;
+            return (
+              <div key={m.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start" }}>
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    padding: "10px 14px",
+                    fontSize: "14px",
+                    lineHeight: 1.45,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    background: mine ? theme.colors.primary : "white",
+                    color: mine ? "white" : theme.colors.text,
+                    boxShadow: mine ? "none" : theme.shadow,
+                    borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px"
+                  }}
+                >
+                  {m.text}
+                </div>
+                <div style={{ fontSize: "11px", color: theme.colors.textMuted, margin: "3px 4px 0" }}>
+                  {!mine && m.senderName ? `${m.senderName} • ` : ""}
+                  {clock(m.createdAt)}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+      <div style={{ display: "flex", gap: "8px" }}>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder="Type a message..."
-          style={{ flex: 1, padding: '10px', borderRadius: '6px' }}
+          style={{ ...field, flex: 1, padding: "14px" }}
         />
-        <button onClick={sendMessage} style={{ background: '#1f4d3a', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px' }}>
-          Send
+        <button
+          onClick={sendMessage}
+          disabled={sending || !text.trim()}
+          aria-label="Send"
+          style={{
+            width: "52px",
+            border: "none",
+            borderRadius: theme.radius.sm,
+            background: theme.colors.primary,
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
+          <Send size={20} />
         </button>
       </div>
     </div>
-  )
+  );
 }

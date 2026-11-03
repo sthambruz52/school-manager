@@ -51,7 +51,7 @@ function SelectWithManual({ value, onChange, options, placeholder, manualPlaceho
   );
 }
 
-export default function MarksEntry() {
+export default function MarksEntry({ title = "Marks Entry", subtitle = "Enter and track assessment marks", types }) {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -202,7 +202,7 @@ export default function MarksEntry() {
 
   return (
     <div style={{ marginTop: "10px" }}>
-      <Header title="Marks Entry" subtitle="Enter and track assessment marks" />
+            <Header title={title} subtitle={subtitle} />
 
       <div style={{
         background: live ? theme.colors.success : theme.colors.warning,
@@ -231,7 +231,7 @@ export default function MarksEntry() {
             {TERMS.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <SelectWithManual value={subject} onChange={setSubject} options={subjects} placeholder="Select subject" manualPlaceholder="Type subject name" />
-          <SelectWithManual value={testType} onChange={setTestType} options={TEST_TYPES} placeholder="Select assessment" manualPlaceholder="Type assessment name" />
+          <SelectWithManual value={testType} onChange={setTestType} options={types || TEST_TYPES} placeholder="Select assessment" manualPlaceholder="Type assessment name" />
           <input
             type="number"
             value={maxScore}
