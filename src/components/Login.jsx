@@ -1,129 +1,268 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { Mail, Lock, Eye, EyeOff, ChevronLeft, GraduationCap, Users, Briefcase } from "lucide-react";
+import { theme, field } from "../theme";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
 
-export default function Login({ onLoginSuccess, initialMode }) {
+const ROLES = [
+  ["Student", GraduationCap],
+  ["Parent", Users],
+  ["Teacher", Briefcase]
+];
+
+const friendly = (err) => {
+  const code = err?.code || "";
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) {
+    return "Incorrect email or password.";
+  }
+  if (code.includes("email-already-in-use")) return "An account with this email already exists. Try logging in instead.";
+  if (code.includes("invalid-email")) return "That email address doesn't look right.";
+  if (code.includes("weak-password")) return "Choose a stronger password (at least 6 characters).";
+  if (code.includes("too-many-requests")) return "Too many attempts. Please wait a few minutes and try again.";
+  if (code.includes("network")) return "No connection. Check your internet and try again.";
+  if (code.includes("permission-denied")) return "We couldn't finish setting up your account. Please contact the school.";
+  return "Something went wrong. Please try again.";
+};
+
+const isTransient = (err) => {
+  const msg = (err?.message || "").toLowerCase();
+  return msg.includes("database") || msg.includes("indexeddb") || msg.includes("closing");
+};
+
+const withRetry = async (fn) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (isTransient(err)) {
+      await new Promise((res) => setTimeout(res, 900));
+      return fn();
+    }
+    throw err;
+  }
+};
+
+function IconInput({ icon: Icon, right, ...props }) {
+  return (
+    <div style={{ position: "relative" }}>
+      <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", display: "flex" }}>
+        <Icon size={18} />
+      </span>
+      <input {...props} style={{ ...field, width: "100%", padding: "13px 44px 13px 40px", fontSize: "15px" }} />
+      {right}
+    </div>
+  );
+}
+
+export default function Login({ onLoginSuccess, initialMode, onBack }) {
   const [isSignup, setIsSignup] = useState(initialMode === "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("Parent");
+  const [showPw, setShowPw] = useState(false);
+  const [role, setRole] = useState("Student");
   const [error, setError] = useState("");
-    const [resetSent, setResetSent] = useState(false);
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [school, setSchool] = useState(null);
 
-  const isTransientError = (msg) => {
-    const lower = (msg || "").toLowerCase();
-    return lower.includes("database") || lower.includes("indexeddb") || lower.includes("closing");
-  };
+  useEffect(() => {
+    getDoc(doc(db, "settings", "schoolInfo"))
+      .then((s) => { if (s.exists()) setSchool(s.data()); })
+      .catch(() => {});
+  }, []);
 
-  const attemptAuth = async (action, retrying = false) => {
-    try {
-      await action();
-    } catch (err) {
-      if (!retrying && isTransientError(err.message)) {
-        await new Promise((res) => setTimeout(res, 900));
-        return attemptAuth(action, true);
-      }
-      throw err;
-    }
-  };
-
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setNotice("");
+    const cleanEmail = email.trim();
 
+    if (!cleanEmail || !password) return setError("Enter your email and password.");
+    if (isSignup && password.length < 6) return setError("Choose a password with at least 6 characters.");
+
+    setLoading(true);
     try {
       if (isSignup) {
-        await attemptAuth(async () => {
-          const cred = await createUserWithEmailAndPassword(auth, email, password);
-          await setDoc(doc(db, "users", cred.user.uid), {
-            email,
+        const cred = await withRetry(() => createUserWithEmailAndPassword(auth, cleanEmail, password));
+        await withRetry(() =>
+          setDoc(doc(db, "users", cred.user.uid), {
+            email: cleanEmail,
             role,
             status: "active",
             createdAt: new Date()
-          });
-        });
+          })
+        );
       } else {
-        await attemptAuth(async () => {
-          await signInWithEmailAndPassword(auth, email, password);
-        });
+        await withRetry(() => signInWithEmailAndPassword(auth, cleanEmail, password));
       }
       if (onLoginSuccess) onLoginSuccess();
     } catch (err) {
-      setError(err.message.replace("Firebase: ", ""));
+      setError(friendly(err));
     }
-
     setLoading(false);
   };
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError("Enter your email above first, then tap 'Forgot password?'");
-      return;
-    }
+
+  const forgot = async () => {
     setError("");
+    setNotice("");
+    if (!email.trim()) return setError("Type your email above first, then tap Forgot password.");
     try {
-      await sendPasswordResetEmail(auth, email);
-      setResetSent(true);
+      await sendPasswordResetEmail(auth, email.trim());
     } catch (err) {
-      setError(err.message.replace("Firebase: ", ""));
+      if (!String(err?.code || "").includes("user-not-found")) return setError(friendly(err));
     }
+    setNotice("If that email has an account, a reset link is on its way. Check your inbox and your spam folder.");
   };
+
+  const switchMode = () => {
+    setIsSignup(!isSignup);
+    setError("");
+    setNotice("");
+  };
+
+  const standalone = !!onBack;
+  const page = standalone
+    ? { position: "fixed", inset: 0, zIndex: 1000, overflowY: "auto", background: theme.colors.bg }
+    : { margin: "20px auto", maxWidth: "420px" };
+
   return (
-    <div style={{ maxWidth: "360px", margin: "60px auto", padding: "24px", background: "white", borderRadius: "10px" }}>
-      <h2 style={{ textAlign: "center" }}>{isSignup ? "Create Account" : "Login"}</h2>
+    <div style={page}>
+      {standalone && (
+        <div style={{ background: theme.gradient("#4338ca", "#7c3aed"), color: "white", padding: "16px 18px 96px", textAlign: "center" }}>
+          <div style={{ textAlign: "left" }}>
+            <button
+              onClick={onBack}
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(255,255,255,0.18)", color: "white", border: "none", borderRadius: theme.radius.sm, padding: "8px 12px", fontWeight: "700", fontSize: "13px" }}
+            >
+              <ChevronLeft size={16} /> Back
+            </button>
+          </div>
+          <img
+            src="/logo.jpg"
+            alt=""
+            style={{ width: "68px", height: "68px", borderRadius: "16px", background: "white", objectFit: "contain", padding: "5px", marginTop: "10px" }}
+          />
+          <div style={{ fontWeight: "800", fontSize: "18px", marginTop: "10px", textTransform: "uppercase", padding: "0 10px" }}>
+            {school?.schoolName || "Welcome"}
+          </div>
+          {school?.tagline && <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "2px", fontStyle: "italic" }}>{school.tagline}</div>}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: "10px", borderRadius: "6px" }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-          style={{ padding: "10px", borderRadius: "6px" }}
-        />
+      <div style={{ maxWidth: "420px", margin: standalone ? "-68px auto 0" : "0 auto", padding: standalone ? "0 16px 40px" : "0" }}>
+        <Card style={{ padding: "22px" }}>
+          <div style={{ fontWeight: "800", fontSize: "22px", color: theme.colors.text }}>
+            {isSignup ? "Create your account" : "Welcome back"}
+          </div>
+          <div style={{ fontSize: "14px", color: theme.colors.textMuted, margin: "4px 0 18px" }}>
+            {isSignup ? "Join in a minute. You'll finish your profile next." : "Log in to continue."}
+          </div>
 
-        {isSignup && (
-          <select value={role} onChange={(e) => setRole(e.target.value)} style={{ padding: "10px", borderRadius: "6px" }}>
-            <option value="Parent">Parent</option>
-            <option value="Student">Student</option>
-            <option value="Teacher">Teacher</option>
-          </select>
-        )}
+          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {isSignup && (
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: theme.colors.textMuted, marginBottom: "6px" }}>I AM A</div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {ROLES.map(([name, Icon]) => {
+                    const on = role === name;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setRole(name)}
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "10px 4px",
+                          borderRadius: theme.radius.sm,
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          border: `1.5px solid ${on ? theme.colors.primary : theme.colors.border}`,
+                          background: on ? "#eef0ff" : "white",
+                          color: on ? theme.colors.primary : theme.colors.textMuted
+                        }}
+                      >
+                        <Icon size={20} /> {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-        {error && <p style={{ color: "#c2704e", fontSize: "14px" }}>{error}</p>}
-        {resetSent && <p style={{ color: "#1f4d3a", fontSize: "14px" }}>Password reset email sent! Check your inbox — and your spam/junk folder if you don't see it within a few minutes.</p>}
+            <IconInput
+              icon={Mail}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              autoComplete="email"
+            />
 
-        {!isSignup && (
-          <p onClick={handleForgotPassword} style={{ color: "#1f4d3a", fontSize: "13px", cursor: "pointer", textAlign: "right", margin: "-4px 0 0" }}>
-            Forgot password?
-          </p>
-        )}
+            <IconInput
+              icon={Lock}
+              type={showPw ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              autoComplete={isSignup ? "new-password" : "current-password"}
+              right={
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "#6b7280", padding: "8px", display: "flex" }}
+                >
+                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
 
-        <button type="submit" disabled={loading} style={{ background: "#1f4d3a", color: "white", padding: "10px", borderRadius: "6px" }}>
-          {loading ? "Please wait..." : isSignup ? "Sign Up" : "Login"}
-        </button>
-      </form>
+            {!isSignup && (
+              <div style={{ textAlign: "right", marginTop: "-4px" }}>
+                <button
+                  type="button"
+                  onClick={forgot}
+                  style={{ background: "transparent", border: "none", color: theme.colors.primary, fontWeight: "700", fontSize: "13px", padding: "2px" }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
-      <p style={{ textAlign: "center", marginTop: "12px" }}>
-        {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
-        <span
-          onClick={() => { setIsSignup(!isSignup); setError(""); }}
-          style={{ color: "#1f4d3a", cursor: "pointer", fontWeight: "bold" }}
-        >
-          {isSignup ? "Login" : "Sign Up"}
-        </span>
-      </p>
+            {error && (
+              <div style={{ background: theme.colors.dangerBg, color: theme.colors.danger, fontSize: "13px", fontWeight: "600", padding: "10px 12px", borderRadius: theme.radius.sm }}>
+                {error}
+              </div>
+            )}
+            {notice && (
+              <div style={{ background: theme.colors.successBg, color: theme.colors.success, fontSize: "13px", fontWeight: "600", padding: "10px 12px", borderRadius: theme.radius.sm }}>
+                {notice}
+              </div>
+            )}
+
+            <Button type="submit" full disabled={loading}>
+              {loading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
+            </Button>
+          </form>
+
+          <div style={{ textAlign: "center", marginTop: "16px", fontSize: "14px", color: theme.colors.textMuted }}>
+            {isSignup ? "Already have an account? " : "Don't have an account? "}
+            <button
+              type="button"
+              onClick={switchMode}
+              style={{ background: "transparent", border: "none", color: theme.colors.primary, fontWeight: "800", fontSize: "14px", padding: 0 }}
+            >
+              {isSignup ? "Log in" : "Sign up"}
+            </button>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

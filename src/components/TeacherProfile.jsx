@@ -1,214 +1,133 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { db, auth } from "../firebase";
-import { doc, setDoc, collection, onSnapshot } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import Button from "./ui/Button";
+import PhotoField from "./ui/PhotoField";
+import AddressFields from "./ui/AddressFields";
+import SubjectPicker from "./ui/SubjectPicker";
+import FormSection from "./ui/FormSection";
+import Labeled from "./ui/Labeled";
 
-const CLOUDINARY_CLOUD_NAME = "tatfep5k";
-const CLOUDINARY_UPLOAD_PRESET = "School Photos";
+const PHONE_OK = /^\+?\d{10,15}$/;
+const BLANK_ADDRESS = { street: "", lga: "", city: "", state: "", country: "Nigeria" };
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const full = { ...field, width: "100%" };
 
 export default function TeacherProfile({ onComplete, existingData, targetUid }) {
-  const [subjects, setSubjects] = useState([]);
-  const [fullName, setFullName] = useState(existingData?.fullName || "");
-  const [phone, setPhone] = useState(existingData?.phone || "");
-  const [dateOfBirth, setDateOfBirth] = useState(existingData?.dateOfBirth || "");
-  const [sex, setSex] = useState(existingData?.sex || "");
-
-  const [selectedSubjects, setSelectedSubjects] = useState(existingData?.subjects || []);
-  const [customSubject, setCustomSubject] = useState("");
-
-  const [street, setStreet] = useState(existingData?.address?.street || "");
-  const [lga, setLga] = useState(existingData?.address?.lga || "");
-  const [city, setCity] = useState(existingData?.address?.city || "");
-  const [stateVal, setStateVal] = useState(existingData?.address?.state || "");
-  const [country, setCountry] = useState(existingData?.address?.country || "Nigeria");
-
-  const [photoURL, setPhotoURL] = useState(existingData?.photoURL || "");
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [saving, setSaving] = useState(false);
-
+  const d = existingData || {};
   const isEditMode = !!existingData;
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "subjects"), (snap) => {
-      setSubjects(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-    return () => unsub();
-  }, []);
+  const [fullName, setFullName] = useState(d.fullName || "");
+  const [phone, setPhone] = useState(d.phone || "");
+  const [dateOfBirth, setDateOfBirth] = useState(d.dateOfBirth || "");
+  const [sex, setSex] = useState(d.sex || "");
+  const [subjects, setSubjects] = useState(d.subjects || []);
+  const [address, setAddress] = useState({ ...BLANK_ADDRESS, ...(d.address || {}) });
+  const [photoURL, setPhotoURL] = useState(d.photoURL || "");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const toggleSubject = (name) => {
-    setSelectedSubjects((prev) =>
-      prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
-    );
-  };
-
-  const addCustomSubject = () => {
-    const trimmed = customSubject.trim();
-    if (!trimmed) return;
-    if (!selectedSubjects.includes(trimmed)) {
-      setSelectedSubjects((prev) => [...prev, trimmed]);
-    }
-    setCustomSubject("");
-  };
-
-  const removeSubject = (name) => {
-    setSelectedSubjects((prev) => prev.filter((s) => s !== name));
-  };
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadingPhoto(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        { method: "POST", body: formData }
-      );
-      const data = await res.json();
-
-      if (data.secure_url) {
-        setPhotoURL(data.secure_url);
-      } else {
-        alert("Photo upload failed. Please try again.");
-      }
-    } catch (err) {
-      alert("Photo upload failed. Check your internet connection.");
-    }
-    setUploadingPhoto(false);
-  };
-
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
 
-    if (!fullName || !phone || !dateOfBirth || !sex) {
-      alert("Please fill in all required fields.");
-      return;
+    if (!fullName.trim() || !phone.trim() || !dateOfBirth || !sex) {
+      return alert("Please fill in all the required fields (marked with *).");
     }
-
-    if (!/^\d{10,15}$/.test(phone.replace(/\s/g, ""))) {
-      alert("Please enter a valid phone number (10-15 digits, no letters or symbols).");
-      return;
+    if (!PHONE_OK.test(phone.replace(/\s/g, ""))) {
+      return alert("Please enter a valid phone number (10-15 digits).");
     }
 
     setSaving(true);
-    const uidForSave = targetUid || auth.currentUser.uid;
-    const staffIdPayload = existingData ? {} : { staffId: "STF-" + new Date().getFullYear() + "-" + uidForSave.slice(0, 6).toUpperCase() };
-    await setDoc(doc(db, "users", uidForSave), {
-      ...staffIdPayload,
-      fullName,
-      phone,
-      dateOfBirth,
-      sex,
-      subjects: selectedSubjects,
-      photoURL,
-      address: { street, lga, city, state: stateVal, country },
-      profileComplete: true
-    }, { merge: true });
+    let ok = false;
+    try {
+      const uid = targetUid || auth.currentUser.uid;
+      const extra = isEditMode
+        ? {}
+        : { staffId: "STF-" + new Date().getFullYear() + "-" + uid.slice(0, 6).toUpperCase() };
 
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          ...extra,
+          fullName: fullName.trim(),
+          phone: phone.trim(),
+          dateOfBirth,
+          sex,
+          subjects,
+          photoURL,
+          address,
+          profileComplete: true
+        },
+        { merge: true }
+      );
+      ok = true;
+    } catch (err) {
+      alert("Could not save the profile. Check your connection and try again.");
+    }
     setSaving(false);
-    if (onComplete) onComplete();
+    if (ok && onComplete) onComplete();
   };
 
-  const inputStyle = { padding: "10px", borderRadius: "6px" };
-  const rowStyle = { display: "flex", gap: "8px", flexWrap: "wrap" };
-  const sectionLabel = { margin: "8px 0 0", fontWeight: "bold", color: "#1f4d3a" };
-
   return (
-    <div style={{ maxWidth: "480px", margin: "40px auto", padding: "24px", background: "white", borderRadius: "10px" }}>
-      <h2 style={{ textAlign: "center" }}>{isEditMode ? "Edit Your Profile" : "Complete Your Profile"}</h2>
+    <div style={{ background: theme.colors.bg, minHeight: "100vh" }}>
+      <div style={{ maxWidth: "700px", margin: "0 auto", padding: "0 16px 40px" }}>
+        <Header
+          title={isEditMode ? "Edit Profile" : "Complete Your Profile"}
+          subtitle={isEditMode ? "Update the teacher's details" : "A few details to set up your account"}
+          onBack={isEditMode ? onComplete : undefined}
+        />
 
-      {isEditMode && (
-        <p onClick={onComplete} style={{ textAlign: "center", color: "#1f4d3a", cursor: "pointer", marginTop: "-8px" }}>
-          ← Back to Dashboard
-        </p>
-      )}
+        <form onSubmit={submit}>
+          <FormSection title="Passport photo">
+            <PhotoField name={fullName} photoURL={photoURL} onChange={setPhotoURL} onBusyChange={setUploading} />
+          </FormSection>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <FormSection title="About you">
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name *" style={full} />
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number *" style={full} />
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <Labeled label="Date of birth *">
+                <input type="date" value={dateOfBirth} max={todayStr()} onChange={(e) => setDateOfBirth(e.target.value)} style={full} />
+              </Labeled>
+              <Labeled label="Sex *">
+                <select value={sex} onChange={(e) => setSex(e.target.value)} style={full}>
+                  <option value="">Select sex</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </Labeled>
+            </div>
+          </FormSection>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-          {photoURL ? (
-            <img src={photoURL} alt="Passport" style={{ width: "110px", height: "130px", objectFit: "cover", borderRadius: "6px", border: "2px solid #1f4d3a" }} />
-          ) : (
-            <div style={{ width: "110px", height: "130px", background: "#fdf6e9", borderRadius: "6px", border: "2px dashed #ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#999", textAlign: "center" }}>
-              No photo yet
+          <FormSection title="Subjects you teach" hint="Students will see you listed under these subjects.">
+            <SubjectPicker selected={subjects} onChange={setSubjects} />
+          </FormSection>
+
+          <FormSection title="Address">
+            <AddressFields value={address} onChange={setAddress} />
+          </FormSection>
+
+          <div style={{ marginTop: "16px" }}>
+            <Button type="submit" full disabled={saving || uploading}>
+              {saving ? "Saving..." : uploading ? "Uploading photo..." : isEditMode ? "Update Profile" : "Save Profile"}
+            </Button>
+          </div>
+
+          {!isEditMode && !targetUid && (
+            <div style={{ textAlign: "center", marginTop: "14px" }}>
+              <Button variant="ghost" size="sm" onClick={() => signOut(auth)}>Log out</Button>
             </div>
           )}
-          <label style={{ background: "#1f4d3a", color: "white", padding: "6px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "14px" }}>
-            {uploadingPhoto ? "Uploading..." : "Upload Passport Photo"}
-            <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploadingPhoto} style={{ display: "none" }} />
-          </label>
-        </div>
-
-        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" required style={inputStyle} />
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" required style={inputStyle} />
-        <div style={rowStyle}>
-          <input
-            type="date"
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-            required
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          <select value={sex} onChange={(e) => setSex(e.target.value)} required style={{ ...inputStyle, flex: 1 }}>
-            <option value="">Select sex</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-        <p style={sectionLabel}>Subjects You Teach</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "160px", overflowY: "auto", border: "1px solid #eee", borderRadius: "6px", padding: "8px" }}>
-          {subjects.map((s) => (
-            <label key={s.id} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                type="checkbox"
-                checked={selectedSubjects.includes(s.name)}
-                onChange={() => toggleSubject(s.name)}
-              />
-              {s.name} {s.code && `(${s.code})`}
-            </label>
-          ))}
-        </div>
-
-        <div style={rowStyle}>
-          <input
-            value={customSubject}
-            onChange={(e) => setCustomSubject(e.target.value)}
-            placeholder="Subject not listed?"
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          <button type="button" onClick={addCustomSubject} style={{ background: "#1f4d3a", color: "white", padding: "8px 14px", borderRadius: "6px" }}>
-            Add
-          </button>
-        </div>
-
-        {selectedSubjects.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {selectedSubjects.map((s) => (
-              <span key={s} style={{ background: "#fdf6e9", padding: "4px 8px", borderRadius: "12px", fontSize: "13px" }}>
-                {s} <span onClick={() => removeSubject(s)} style={{ cursor: "pointer", color: "#c2704e", marginLeft: "4px" }}>×</span>
-              </span>
-            ))}
-          </div>
-        )}
-
-        <p style={sectionLabel}>Address</p>
-        <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Street" style={inputStyle} />
-        <div style={rowStyle}>
-          <input value={lga} onChange={(e) => setLga(e.target.value)} placeholder="LGA" style={{ ...inputStyle, flex: 1 }} />
-          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" style={{ ...inputStyle, flex: 1 }} />
-        </div>
-        <div style={rowStyle}>
-          <input value={stateVal} onChange={(e) => setStateVal(e.target.value)} placeholder="State" style={{ ...inputStyle, flex: 1 }} />
-          <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" style={{ ...inputStyle, flex: 1 }} />
-        </div>
-
-        <button type="submit" disabled={saving || uploadingPhoto} style={{ background: "#1f4d3a", color: "white", padding: "10px", borderRadius: "6px", marginTop: "8px" }}>
-          {saving ? "Saving..." : isEditMode ? "Update Profile" : "Save Profile"}
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

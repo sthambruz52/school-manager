@@ -54,6 +54,8 @@ export default function StaffDirectory({ isAdmin }) {
             dateOfBirth: d.data().dateOfBirth || "",
             sex: d.data().sex || "",
             photoURL: d.data().photoURL || "",
+                        staffId: d.data().staffId || "",
+            createdAt: d.data().createdAt || null,
             isTeacherAccount: true
           }))
       );

@@ -1,78 +1,44 @@
-import { useState, useEffect, useRef } from "react";
-import { db } from "../firebase";
-import { doc, onSnapshot } from "firebase/firestore";
-import { renderIDCard, downloadCanvas, ROLE_COLORS } from "../utils/generateIDCard";
+import { theme } from "../theme";
+import { ROLE_COLORS } from "../utils/generateIDCard";
+import Header from "./ui/Header";
+import Card from "./ui/Card";
+import IDCardView from "./ui/IDCardView";
 
 export default function StudentIDCard({ userData, studentUid, studentEmail }) {
-  const [schoolInfo, setSchoolInfo] = useState(null);
-  const [contactInfo, setContactInfo] = useState(null);
-  const frontCanvasRef = useRef(null);
-  const backCanvasRef = useRef(null);
+  const year = userData.createdAt?.toDate ? userData.createdAt.toDate().getFullYear() : new Date().getFullYear();
+  const regNumber = userData.regNumber || `REG-${year}-${studentUid.slice(0, 6).toUpperCase()}`;
+  const address = [userData.address?.street, userData.address?.lga, userData.address?.city, userData.address?.state, userData.address?.country]
+    .filter(Boolean)
+    .join(", ");
 
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "schoolInfo"), (docSnap) => {
-      if (docSnap.exists()) setSchoolInfo(docSnap.data());
-    });
-    return () => unsub();
-  }, []);
+  const options = {
+    name: userData.fullName,
+    photoURL: userData.photoURL,
+    idNumber: regNumber,
+    roleLabel: `Student — ${userData.classLevel || "-"}`,
+    dateOfBirth: userData.dateOfBirth,
+    email: studentEmail,
+    accentColor: ROLE_COLORS.Student,
+    lines: [
+      { label: "Parent/Guardian:", value: userData.parentName },
+      { label: "Parent Phone:", value: userData.parentPhone },
+      { label: "Address:", value: address }
+    ]
+  };
 
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "contactInfo"), (docSnap) => {
-      if (docSnap.exists()) setContactInfo(docSnap.data());
-    });
-    return () => unsub();
-  }, []);
-
-  const regNumber = userData.regNumber || ("REG-" + new Date().getFullYear() + "-" + studentUid.slice(0, 6).toUpperCase());
-
-  useEffect(() => {
-    if (!frontCanvasRef.current || !backCanvasRef.current) return;
-    const address = [userData.address?.street, userData.address?.lga, userData.address?.city, userData.address?.state, userData.address?.country].filter(Boolean).join(", ");
-
-    renderIDCard(frontCanvasRef.current, backCanvasRef.current, {
-      schoolInfo,
-      contactInfo,
-      name: userData.fullName,
-      photoURL: userData.photoURL,
-      idNumber: regNumber,
-      roleLabel: `Student — ${userData.classLevel || "-"}`,
-      dateOfBirth: userData.dateOfBirth,
-      email: studentEmail,
-      accentColor: ROLE_COLORS.Student,
-      lines: [
-        { label: "Parent/Guardian:", value: userData.parentName },
-        { label: "Parent Phone:", value: userData.parentPhone },
-        { label: "Address:", value: address }
-      ]
-    });
-    // eslint-disable-next-line
-  }, [userData, schoolInfo, contactInfo]);
+  const missing = !userData.dateOfBirth || !userData.photoURL;
 
   return (
-    <div style={{ maxWidth: "700px", margin: "20px auto", padding: "0 20px" }}>
-      <h2 style={{ textAlign: "center" }}>My ID Card</h2>
-
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "24px" }}>
-        <div>
-          <p style={{ textAlign: "center", fontWeight: "bold", color: "#1f4d3a" }}>Front</p>
-          <canvas ref={frontCanvasRef} style={{ width: "220px", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />
-          <div style={{ textAlign: "center", marginTop: "8px" }}>
-            <button onClick={() => downloadCanvas(frontCanvasRef.current, "id-card-front.png")} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "8px 20px", borderRadius: "6px" }}>
-              Download Front
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <p style={{ textAlign: "center", fontWeight: "bold", color: "#1f4d3a" }}>Back</p>
-          <canvas ref={backCanvasRef} style={{ width: "220px", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />
-          <div style={{ textAlign: "center", marginTop: "8px" }}>
-            <button onClick={() => downloadCanvas(backCanvasRef.current, "id-card-back.png")} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "8px 20px", borderRadius: "6px" }}>
-              Download Back
-            </button>
-          </div>
-        </div>
-      </div>
+    <div style={{ maxWidth: "700px", margin: "10px auto 0", padding: "0 16px 24px" }}>
+      <Header title="My ID Card" subtitle="Front and back, ready to download" />
+      <Card style={{ marginTop: "14px", padding: "20px 12px" }}>
+        <IDCardView options={options} fileBase="id-card" />
+      </Card>
+      {missing && (
+        <p style={{ fontSize: "13px", color: theme.colors.textMuted, textAlign: "center" }}>
+          Some details are missing. Open My Profile from the menu to add your photo and date of birth.
+        </p>
+      )}
     </div>
   );
 }

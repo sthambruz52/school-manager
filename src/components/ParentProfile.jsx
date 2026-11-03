@@ -1,119 +1,169 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
 import { doc, setDoc, collection, query, where, onSnapshot } from "firebase/firestore";
+import { signOut } from "firebase/auth";
+import { Check, X } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import Button from "./ui/Button";
+import Avatar from "./ui/Avatar";
+import FormSection from "./ui/FormSection";
+
+const PHONE_OK = /^\+?\d{10,15}$/;
+const full = { ...field, width: "100%" };
 
 export default function ParentProfile({ onComplete, existingData, targetUid }) {
-  const [students, setStudents] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const [fullName, setFullName] = useState(existingData?.fullName || "");
-  const [phone, setPhone] = useState(existingData?.phone || "");
-  const [selectedChildren, setSelectedChildren] = useState(existingData?.children || []);
-
-  const [saving, setSaving] = useState(false);
+  const d = existingData || {};
   const isEditMode = !!existingData;
+
+  const [students, setStudents] = useState([]);
+  const [search, setSearch] = useState("");
+  const [fullName, setFullName] = useState(d.fullName || "");
+  const [phone, setPhone] = useState(d.phone || "");
+  const [selected, setSelected] = useState(d.children || []);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "Student"));
-    const unsub = onSnapshot(q, (snap) => {
-      setStudents(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(q, (snap) => setStudents(snap.docs.map((x) => ({ id: x.id, ...x.data() }))));
     return () => unsub();
   }, []);
 
-  const isSelected = (studentId) => selectedChildren.some((c) => c.uid === studentId);
+  const isLinked = (id) => selected.some((c) => c.uid === id);
 
-  const toggleChild = (student) => {
-    setSelectedChildren((prev) =>
-      isSelected(student.id)
-        ? prev.filter((c) => c.uid !== student.id)
-        : [...prev, { uid: student.id, name: student.fullName, classLevel: student.classLevel || "" }]
+  const toggle = (s) =>
+    setSelected((prev) =>
+      isLinked(s.id)
+        ? prev.filter((c) => c.uid !== s.id)
+        : [...prev, { uid: s.id, name: s.fullName || "", classLevel: s.classLevel || "" }]
     );
-  };
 
-  const filteredStudents = students.filter((s) =>
-    (s.fullName || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const matches = students
+    .filter((s) => !search || (s.fullName || "").toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
+  const list = search ? matches : matches.slice(0, 40);
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!fullName || !phone) {
-      alert("Please fill in your name and phone number.");
-      return;
+
+    if (!fullName.trim() || !phone.trim()) return alert("Please fill in your name and phone number.");
+    if (!PHONE_OK.test(phone.replace(/\s/g, ""))) return alert("Please enter a valid phone number (10-15 digits).");
+
+    setSaving(true);
+    let ok = false;
+    try {
+      await setDoc(
+        doc(db, "users", targetUid || auth.currentUser.uid),
+        { fullName: fullName.trim(), phone: phone.trim(), children: selected, profileComplete: true },
+        { merge: true }
+      );
+      ok = true;
+    } catch (err) {
+      alert("Could not save the profile. Check your connection and try again.");
     }
-
-    if (!/^\d{10,15}$/.test(phone.replace(/\s/g, ""))) {
-      alert("Please enter a valid phone number (10-15 digits, no letters or symbols).");
-      return;
-    }
-
-       setSaving(true);
-    await setDoc(doc(db, "users", targetUid || auth.currentUser.uid), { 
-      fullName,
-      phone,
-      children: selectedChildren,
-      profileComplete: true
-    }, { merge: true });
-
     setSaving(false);
-    if (onComplete) onComplete();
+    if (ok && onComplete) onComplete();
   };
-
-  const inputStyle = { padding: "10px", borderRadius: "6px" };
-  const sectionLabel = { margin: "8px 0 0", fontWeight: "bold", color: "#1f4d3a" };
 
   return (
-    <div style={{ maxWidth: "480px", margin: "40px auto", padding: "24px", background: "white", borderRadius: "10px" }}>
-      <h2 style={{ textAlign: "center" }}>{isEditMode ? "Edit Your Profile" : "Complete Your Profile"}</h2>
-
-      {isEditMode && (
-        <p onClick={onComplete} style={{ textAlign: "center", color: "#1f4d3a", cursor: "pointer", marginTop: "-8px" }}>
-          ← Back to Dashboard
-        </p>
-      )}
-
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" required style={inputStyle} />
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your phone number" required style={inputStyle} />
-
-        <p style={sectionLabel}>Link Your Ward(s)</p>
-        <p style={{ fontSize: "13px", color: "#666", margin: 0 }}>
-          Select your child if they're already registered. Don't see them yet? Skip this and link them later from "My Profile" once they've signed up.
-        </p>
-
-        <input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search student by name..."
-          style={inputStyle}
+    <div style={{ background: theme.colors.bg, minHeight: "100vh" }}>
+      <div style={{ maxWidth: "700px", margin: "0 auto", padding: "0 16px 40px" }}>
+        <Header
+          title={isEditMode ? "Edit Profile" : "Complete Your Profile"}
+          subtitle={isEditMode ? "Update your details and wards" : "Set up your parent account"}
+          onBack={isEditMode ? onComplete : undefined}
         />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto", border: "1px solid #eee", borderRadius: "6px", padding: "8px" }}>
-          {filteredStudents.length === 0 && (
-            <p style={{ fontSize: "13px", color: "#999", margin: 0 }}>No matching students found.</p>
-          )}
-          {filteredStudents.map((s) => (
-            <label key={s.id} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input type="checkbox" checked={isSelected(s.id)} onChange={() => toggleChild(s)} />
-              {s.fullName} {s.classLevel && `— ${s.classLevel}`}
-            </label>
-          ))}
-        </div>
+        <form onSubmit={submit}>
+          <FormSection title="About you">
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name *" style={full} />
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your phone number *" style={full} />
+          </FormSection>
 
-        {selectedChildren.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {selectedChildren.map((c) => (
-              <span key={c.uid} style={{ background: "#fdf6e9", padding: "4px 8px", borderRadius: "12px", fontSize: "13px" }}>
-                {c.name}
-              </span>
-            ))}
+          <FormSection title="Link your ward(s)" hint="Find your child and tap to link. You can also do this later from My Profile.">
+            {selected.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {selected.map((c) => (
+                  <span
+                    key={c.uid}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: "#eef0ff",
+                      color: theme.colors.primary,
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      padding: "5px 10px",
+                      borderRadius: "999px"
+                    }}
+                  >
+                    {c.name}
+                    <X
+                      size={14}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setSelected((prev) => prev.filter((x) => x.uid !== c.uid))}
+                    />
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search for your child by name..." style={full} />
+
+            <div style={{ maxHeight: "280px", overflowY: "auto" }}>
+              {list.length === 0 ? (
+                <div style={{ fontSize: "13px", color: theme.colors.textMuted, padding: "10px 4px" }}>
+                  No matching students found. Your child may not have registered yet.
+                </div>
+              ) : (
+                list.map((s) => {
+                  const on = isLinked(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => toggle(s)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: "8px 10px",
+                        borderRadius: theme.radius.sm,
+                        cursor: "pointer",
+                        background: on ? "#eef0ff" : "transparent"
+                      }}
+                    >
+                      <Avatar name={s.fullName} photoURL={s.photoURL} size={44} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: "600", fontSize: "14px", color: theme.colors.text }}>{s.fullName}</div>
+                        <div style={{ fontSize: "12px", color: theme.colors.textMuted }}>{s.classLevel || "No class"}</div>
+                      </div>
+                      {on && <Check size={20} color={theme.colors.primary} />}
+                    </div>
+                  );
+                })
+              )}
+              {!search && matches.length > 40 && (
+                <div style={{ fontSize: "12px", color: theme.colors.textMuted, padding: "8px 4px" }}>
+                  Showing the first 40. Type a name to narrow the list.
+                </div>
+              )}
+            </div>
+          </FormSection>
+
+          <div style={{ marginTop: "16px" }}>
+            <Button type="submit" full disabled={saving}>
+              {saving ? "Saving..." : isEditMode ? "Update Profile" : "Save Profile"}
+            </Button>
           </div>
-        )}
 
-        <button type="submit" disabled={saving} style={{ background: "#1f4d3a", color: "white", padding: "10px", borderRadius: "6px", marginTop: "8px" }}>
-          {saving ? "Saving..." : isEditMode ? "Update Profile" : selectedChildren.length > 0 ? "Save Profile" : "Skip & Continue"}
-        </button>
-      </form>
+          {!isEditMode && !targetUid && (
+            <div style={{ textAlign: "center", marginTop: "14px" }}>
+              <Button variant="ghost" size="sm" onClick={() => signOut(auth)}>Log out</Button>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

@@ -69,7 +69,7 @@ export default function LandingPage() {
           <p onClick={() => setMode(null)} style={{ color: "#1f4d3a", cursor: "pointer", fontWeight: "bold", marginBottom: "0" }}>
             ← Back
           </p>
-          <Login onLoginSuccess={() => {}} initialMode={mode} />
+          <Login onLoginSuccess={() => {}} initialMode={mode} onBack={() => setMode(null)} />
         </div>
       </div>
     );

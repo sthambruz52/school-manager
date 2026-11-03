@@ -4,7 +4,7 @@ import { field } from "../../theme";
 const OTHER = "__OTHER__";
 
 export default function SelectWithManual({ value, onChange, options, placeholder, manualPlaceholder, style = {} }) {
-  const [manual, setManual] = useState(false);
+  const [manual, setManual] = useState(() => !!value && !options.includes(value));
   const base = { ...field, flex: "1 1 150px", ...style };
 
   return (
