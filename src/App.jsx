@@ -130,7 +130,7 @@ function App() {
       const unread = docSnap.exists() && docSnap.data().unreadByUser === true;
       if (unread && !chatAlertShown && activeView !== "supportchat") {
         setChatAlertShown(true);
-        if (Notification.permission === "granted" && userData?.notificationsEnabled !== false) {
+        if (typeof Notification !== "undefined" && Notification.permission === "granted" && userData?.notificationsEnabled !== false) {
           new Notification("New message from Admin", { body: docSnap.data().lastMessage || "" });
         }
       }
@@ -145,7 +145,7 @@ function App() {
       snap.docChanges().forEach((change) => {
         if (change.type === "modified" || change.type === "added") {
           const data = change.doc.data();
-          if (data.unreadByAdmin && activeView !== "supportchat" && Notification.permission === "granted" && userData?.notificationsEnabled !== false) {
+          if (data.unreadByAdmin && activeView !== "supportchat" && typeof Notification !== "undefined" && Notification.permission === "granted" && userData?.notificationsEnabled !== false) {
             new Notification(`New message from ${data.userName || "a user"}`, { body: data.lastMessage || "" });
           }
         }

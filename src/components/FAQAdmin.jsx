@@ -1,66 +1,117 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { Plus, X, Pencil, Trash2, HelpCircle } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import EmptyState from "./ui/EmptyState";
 
 export default function FAQAdmin() {
-  const [faqs, setFaqs] = useState([]);
+  const [items, setItems] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "faqs"), orderBy("createdAt", "asc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setFaqs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(q, (snap) => setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return () => unsub();
   }, []);
 
-  const addFaq = async () => {
-    if (!question.trim() || !answer.trim()) return alert("Fill in both the question and answer.");
+  const reset = () => {
+    setEditingId(null);
+    setQuestion("");
+    setAnswer("");
+    setShowForm(false);
+  };
+
+  const startEdit = (f) => {
+    setEditingId(f.id);
+    setQuestion(f.question || "");
+    setAnswer(f.answer || "");
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const save = async () => {
+    if (!question.trim() || !answer.trim()) return alert("Fill in both the question and the answer.");
     setSaving(true);
-    await addDoc(collection(db, "faqs"), {
-      question: question.trim(),
-      answer: answer.trim(),
-      createdAt: new Date()
-    });
-    setQuestion(""); setAnswer("");
+    const payload = { question: question.trim(), answer: answer.trim() };
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "faqs", editingId), payload);
+      } else {
+        await addDoc(collection(db, "faqs"), { ...payload, createdAt: new Date() });
+      }
+      reset();
+    } catch (err) {
+      alert("Could not save. Please try again.");
+    }
     setSaving(false);
   };
 
-  const removeFaq = async (id) => {
+  const remove = async (id) => {
     if (confirm("Remove this question?")) await deleteDoc(doc(db, "faqs", id));
   };
 
-  const inputStyle = { padding: "10px", borderRadius: "6px" };
-
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>FAQ</h2>
-      <p style={{ textAlign: "center", fontSize: "12px", color: "#999" }}>
-        These appear on your public landing page.
-      </p>
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title="FAQ"
+        subtitle={`${items.length} question${items.length !== 1 ? "s" : ""} on your landing page`}
+        rightSlot={
+          <HeaderAction
+            icon={showForm ? <X size={16} /> : <Plus size={16} />}
+            label={showForm ? "Close" : "Add"}
+            onClick={() => (showForm ? reset() : setShowForm(true))}
+          />
+        }
+      />
 
-      <div style={{ background: "white", padding: "16px", borderRadius: "10px", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px", maxWidth: "500px", margin: "0 auto 20px" }}>
-        <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Question" style={inputStyle} />
-        <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Answer" rows={3} style={{ ...inputStyle, resize: "vertical", fontFamily: "Arial" }} />
-        <button onClick={addFaq} disabled={saving} style={{ background: "#1f4d3a", color: "white", padding: "10px", borderRadius: "6px", border: "none" }}>
-          {saving ? "Adding..." : "Add Question"}
-        </button>
-      </div>
-
-      {faqs.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No FAQ questions added yet.</p>
-      ) : (
-        faqs.map((f) => (
-          <div key={f.id} style={{ background: "white", padding: "14px", margin: "8px 0", borderRadius: "10px", maxWidth: "500px", marginLeft: "auto", marginRight: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <strong style={{ fontSize: "14px" }}>{f.question}</strong>
-              <button onClick={() => removeFaq(f.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "2px 8px" }}>x</button>
-            </div>
-            <p style={{ fontSize: "13px", color: "#666", margin: "6px 0 0" }}>{f.answer}</p>
+      {showForm && (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ fontWeight: "800", marginBottom: "10px", color: theme.colors.text }}>
+            {editingId ? "Edit question" : "New question"}
           </div>
-        ))
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Question" style={field} />
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="Answer"
+              rows={4}
+              style={{ ...field, resize: "vertical", fontFamily: "Arial" }}
+            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Button full onClick={save} disabled={saving}>
+                {saving ? "Saving..." : editingId ? "Update Question" : "Add Question"}
+              </Button>
+              {editingId && <Button variant="ghost" onClick={reset}>Cancel</Button>}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {items.length === 0 ? (
+        <EmptyState icon={HelpCircle} text="No questions yet. Add one to show it on the landing page." />
+      ) : (
+        <div style={{ marginTop: "14px" }}>
+          {items.map((f) => (
+            <Card key={f.id}>
+              <div style={{ fontWeight: "800", fontSize: "15px", color: theme.colors.text }}>{f.question}</div>
+              <p style={{ fontSize: "14px", color: "#374151", lineHeight: 1.6, margin: "6px 0 12px", whiteSpace: "pre-wrap" }}>{f.answer}</p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <Button size="sm" variant="outline" icon={<Pencil size={14} />} onClick={() => startEdit(f)}>Edit</Button>
+                <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => remove(f.id)}>Delete</Button>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

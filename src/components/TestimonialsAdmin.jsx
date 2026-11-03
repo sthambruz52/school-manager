@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { Plus, X, Pencil, Trash2, Star } from "lucide-react";
+import { theme, field } from "../theme";
+import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import Avatar from "./ui/Avatar";
+import EmptyState from "./ui/EmptyState";
 
 export default function TestimonialsAdmin() {
-  const [testimonials, setTestimonials] = useState([]);
+  const [items, setItems] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [quote, setQuote] = useState("");
@@ -11,60 +21,111 @@ export default function TestimonialsAdmin() {
 
   useEffect(() => {
     const q = query(collection(db, "testimonials"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setTestimonials(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(q, (snap) => setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return () => unsub();
   }, []);
 
-  const addTestimonial = async () => {
-    if (!name.trim() || !role.trim() || !quote.trim()) return alert("Fill in all fields.");
+  const reset = () => {
+    setEditingId(null);
+    setName("");
+    setRole("");
+    setQuote("");
+    setShowForm(false);
+  };
+
+  const startEdit = (t) => {
+    setEditingId(t.id);
+    setName(t.name || "");
+    setRole(t.role || "");
+    setQuote(t.quote || "");
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const save = async () => {
+    if (!name.trim() || !role.trim() || !quote.trim()) return alert("Fill in the name, role and testimonial.");
     setSaving(true);
-    await addDoc(collection(db, "testimonials"), {
-      name: name.trim(),
-      role: role.trim(),
-      quote: quote.trim(),
-      createdAt: new Date()
-    });
-    setName(""); setRole(""); setQuote("");
+    const payload = { name: name.trim(), role: role.trim(), quote: quote.trim() };
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "testimonials", editingId), payload);
+      } else {
+        await addDoc(collection(db, "testimonials"), { ...payload, createdAt: new Date() });
+      }
+      reset();
+    } catch (err) {
+      alert("Could not save. Please try again.");
+    }
     setSaving(false);
   };
 
-  const removeTestimonial = async (id) => {
+  const remove = async (id) => {
     if (confirm("Remove this testimonial?")) await deleteDoc(doc(db, "testimonials", id));
   };
 
-  const inputStyle = { padding: "10px", borderRadius: "6px" };
-
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2 style={{ textAlign: "center" }}>Testimonials</h2>
-      <p style={{ textAlign: "center", fontSize: "12px", color: "#999" }}>
-        These appear on your public landing page.
-      </p>
+    <div style={{ marginTop: "10px" }}>
+      <Header
+        title="Testimonials"
+        subtitle={`${items.length} • the 6 newest show on your landing page`}
+        rightSlot={
+          <HeaderAction
+            icon={showForm ? <X size={16} /> : <Plus size={16} />}
+            label={showForm ? "Close" : "Add"}
+            onClick={() => (showForm ? reset() : setShowForm(true))}
+          />
+        }
+      />
 
-      <div style={{ background: "white", padding: "16px", borderRadius: "10px", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px", maxWidth: "500px", margin: "0 auto 20px" }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (e.g. Mrs. Adaobi Nwankwo)" style={inputStyle} />
-        <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role (e.g. Parent, Primary 3)" style={inputStyle} />
-        <textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Their testimonial..." rows={3} style={{ ...inputStyle, resize: "vertical", fontFamily: "Arial" }} />
-        <button onClick={addTestimonial} disabled={saving} style={{ background: "#1f4d3a", color: "white", padding: "10px", borderRadius: "6px", border: "none" }}>
-          {saving ? "Adding..." : "Add Testimonial"}
-        </button>
-      </div>
-
-      {testimonials.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#666" }}>No testimonials added yet.</p>
-      ) : (
-        testimonials.map((t) => (
-          <div key={t.id} style={{ background: "white", padding: "14px", margin: "8px 0", borderRadius: "10px", maxWidth: "500px", marginLeft: "auto", marginRight: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <strong>{t.name}</strong>
-              <button onClick={() => removeTestimonial(t.id)} style={{ background: "#c2704e", color: "white", border: "none", borderRadius: "4px", padding: "2px 8px" }}>x</button>
-            </div>
-            <div style={{ fontSize: "12px", color: "#888" }}>{t.role}</div>
-            <p style={{ fontSize: "13px", color: "#444", margin: "6px 0 0", fontStyle: "italic" }}>"{t.quote}"</p>
+      {showForm && (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ fontWeight: "800", marginBottom: "10px", color: theme.colors.text }}>
+            {editingId ? "Edit testimonial" : "New testimonial"}
           </div>
-        ))
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (e.g. Mrs. Adaobi Nwankwo)" style={field} />
+            <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role (e.g. Parent, Primary 3)" style={field} />
+            <textarea
+              value={quote}
+              onChange={(e) => setQuote(e.target.value)}
+              placeholder="What they said..."
+              rows={4}
+              style={{ ...field, resize: "vertical", fontFamily: "Arial" }}
+            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Button full onClick={save} disabled={saving}>
+                {saving ? "Saving..." : editingId ? "Update Testimonial" : "Add Testimonial"}
+              </Button>
+              {editingId && <Button variant="ghost" onClick={reset}>Cancel</Button>}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {items.length === 0 ? (
+        <EmptyState icon={Star} text="No testimonials yet. Add one to show it on the landing page." />
+      ) : (
+        <div style={{ marginTop: "14px" }}>
+          {items.map((t) => (
+            <Card key={t.id}>
+              <div style={{ color: "#d4a017", fontSize: "15px", letterSpacing: "2px" }}>★★★★★</div>
+              <p style={{ fontStyle: "italic", color: "#374151", fontSize: "14px", lineHeight: 1.6, margin: "8px 0 12px", whiteSpace: "pre-wrap" }}>
+                "{t.quote}"
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Avatar name={t.name} size={44} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: "700", fontSize: "14px", color: theme.colors.text }}>{t.name}</div>
+                  <div style={{ fontSize: "12px", color: theme.colors.textMuted }}>{t.role}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                <Button size="sm" variant="outline" icon={<Pencil size={14} />} onClick={() => startEdit(t)}>Edit</Button>
+                <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => remove(t.id)}>Delete</Button>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
