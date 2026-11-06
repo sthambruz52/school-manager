@@ -36,7 +36,7 @@ const paymentStatus = (fee) =>
 const statusVariant = (status) =>
   status === "Full Payment" ? "success" : status === "Part Payment" ? "warning" : "danger";
 
-export default function Fees({ students }) {
+export default function Fees({ students, readOnly = false }) {
   const [fees, setFees] = useState([]);
   const [showForm, setShowForm] = useState(false);
 
@@ -126,7 +126,7 @@ export default function Fees({ students }) {
       <Header
         title="Fees"
         subtitle="Track payments and issue receipts"
-        rightSlot={
+        rightSlot={readOnly ? null :
           <button
             onClick={() => setShowForm(!showForm)}
             style={{
@@ -157,7 +157,7 @@ export default function Fees({ students }) {
         />
       </div>
 
-      {showForm && (
+      {showForm && !readOnly && (
         <Card>
           <div style={{ fontWeight: "700", marginBottom: "10px", color: theme.colors.text }}>Record a new fee</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
@@ -285,7 +285,7 @@ export default function Fees({ students }) {
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-                  {status !== "Full Payment" && (
+                  {status !== "Full Payment" && !readOnly && (
                     <button
                       onClick={() => { setPayingId(f.id); setPayAmount(""); }}
                       style={{ flex: 1, background: theme.colors.primary, color: "white", border: "none", borderRadius: theme.radius.sm, padding: "10px", fontWeight: "700", fontSize: "13px" }}

@@ -1,4 +1,4 @@
-import { Home, ClipboardList, BarChart3, ClipboardCheck, DollarSign, FileText, LayoutGrid, Menu as MenuIcon } from "lucide-react";
+import { Home, ClipboardList, BarChart3, ClipboardCheck, DollarSign, FileText, LayoutGrid, Eye, TrendingUp, Menu as MenuIcon } from "lucide-react";
 
 export const NAV_ITEMS = {
   Admin: [
@@ -27,6 +27,13 @@ export const NAV_ITEMS = {
     { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
     { key: "assignments", label: "Tasks", icon: ClipboardCheck },
     { key: "reportcard", label: "Results", icon: FileText },
+    { key: "menu", label: "Menu", icon: MenuIcon }
+  ],
+  Management: [
+    { key: "home", label: "Home", icon: Home },
+    { key: "overview", label: "Overview", icon: Eye },
+    { key: "attendanceanalytics", label: "Attendance", icon: TrendingUp },
+    { key: "fees", label: "Fees", icon: DollarSign },
     { key: "menu", label: "Menu", icon: MenuIcon }
   ]
 };

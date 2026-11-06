@@ -1,4 +1,4 @@
-import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle, CreditCard, TrendingUp } from "lucide-react";
+import { ClipboardList, BarChart3, DollarSign, BookOpen, GraduationCap, Users, Briefcase, Image, Trophy, Home as HomeIcon, School, FileText, Megaphone, Phone, Notebook, LayoutGrid, ListChecks, ClipboardCheck, MessageCircle, Settings, Star, HelpCircle, CreditCard, TrendingUp, Eye, ShieldCheck } from "lucide-react";
 
 export const ICONS = {
   rollcall: ClipboardList,
@@ -25,9 +25,36 @@ export const ICONS = {
     faqadmin: HelpCircle,
    idcard: CreditCard,
   attendanceanalytics: TrendingUp,
+    overview: Eye,
+  access: ShieldCheck,
 };
 
 export const MENU_GROUPS = {
+    Management: [
+    { group: "Overview", items: [
+      { key: "overview", label: "School Overview" }
+    ]},
+    { group: "Academics", items: [
+      { key: "classes", label: "Classes" },
+      { key: "reportcard", label: "Report Cards" },
+      { key: "attendanceanalytics", label: "Attendance Analytics" }
+    ]},
+    { group: "Accounts", items: [
+      { key: "adminstudents", label: "Students, Parents & Teachers" },
+      { key: "fees", label: "Fees" }
+    ]},
+    { group: "School Life", items: [
+      { key: "noticeboard", label: "Notice Board" },
+      { key: "staff", label: "Staff & Management" },
+      { key: "gallery", label: "Gallery" },
+      { key: "activities", label: "School Activities" },
+      { key: "contactus", label: "Contact Us" }
+    ]},
+    { group: "Support", items: [
+      { key: "supportchat", label: "Support Chat" },
+      { key: "accountsettings", label: "Account Settings" }
+    ]}
+  ],
   Admin: [
     { group: "Academics", items: [
       { key: "rollcall", label: "Roll Call" },
@@ -55,6 +82,7 @@ export const MENU_GROUPS = {
       { key: "schoolinfo", label: "School Info" },
       { key: "testimonialsadmin", label: "Testimonials" },
       { key: "faqadmin", label: "FAQ" },
+      { key: "access", label: "Management Access" }
     ]},
     { group: "Support", items: [
       { key: "supportchat", label: "Support Chat" },

@@ -27,7 +27,9 @@ const SUBTITLES = {
   accountsettings: "Password and notifications",
   dashboard: "Grades, fees and attendance",
   mysubjects: "Your subjects and teachers",
-  idcard: "View and download your ID card"
+  idcard: "View and download your ID card",
+  overview: "Students, attendance and fees at a glance",
+  access: "Give owners and directors view-only access"
 };
 
 const FAMILY_SUBTITLES = {
@@ -47,6 +49,7 @@ const TILE_COLORS = [
 function profileLine(role, d, email) {
   if (role === "Student") return `Student • ${d.regNumber || "—"}`;
   if (role === "Teacher") return `Teacher • ${d.staffId || "—"}`;
+  if (role === "Management") return `${d.managementTitle || "Management"} • View only`;
   return `${role} • ${email}`;
 }
 
@@ -63,6 +66,9 @@ function statsFor(role, d) {
   }
   if (role === "Parent") {
     return [["Wards", (d.children || []).length], ["Role", "Parent"]];
+  }
+  if (role === "Management") {
+    return [["Role", d.managementTitle || "Management"], ["Access", "View only"]];
   }
   return [["Role", role || "-"]];
 }

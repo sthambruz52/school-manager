@@ -15,6 +15,8 @@ import Grades from "./components/Grades";
 import StudentDashboard from "./components/StudentDashboard";
 import ParentDashboard from "./components/ParentDashboard";
 import SideMenu from "./components/SideMenu";
+import ManagementViews from "./components/ManagementViews";
+import ManagementAccess from "./components/ManagementAccess";
 import BottomNav from "./components/ui/BottomNav";
 import { NAV_ITEMS } from "./navConfig";
 import StaffDirectory from "./components/StaffDirectory";
@@ -470,6 +472,7 @@ function App() {
                     
                     {activeView === "noticeboard" && <NoticeBoard isAdmin={userRole === "Admin"} />}
           {activeView === "schoolinfo" && userRole === "Admin" && <SchoolInfo />}
+                    {activeView === "access" && userRole === "Admin" && <ManagementAccess />}
                     {activeView === "testimonialsadmin" && userRole === "Admin" && <TestimonialsAdmin />}
           {activeView === "faqadmin" && userRole === "Admin" && <FAQAdmin />}
                     {activeView === "reportcard" && (userRole === "Admin" || userRole === "Teacher") && (
@@ -496,6 +499,9 @@ function App() {
       <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '11px' }}>
         Developed by EPIC TRIBE RESOURCES INT.
       </div>
+            {userRole === "Management" && activeView !== "home" && (
+        <ManagementViews activeView={activeView} students={students} />
+      )}
             <div style={{ height: '100px' }} />
       {!menuOpen && (
         <BottomNav

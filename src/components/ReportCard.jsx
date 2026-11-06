@@ -33,7 +33,7 @@ const fieldStyle = {
 
 const pctColor = (pct) => (pct >= 60 ? theme.colors.success : pct >= 40 ? theme.colors.warning : theme.colors.danger);
 
-export default function ReportCard({ isAdmin, fixedStudentId, fixedStudentName }) {
+export default function ReportCard({ isAdmin, readOnly = false, fixedStudentId, fixedStudentName }) {
   const [students, setStudents] = useState([]);
   const [classSelect, setClassSelect] = useState("");
   const [manualClass, setManualClass] = useState("");
@@ -364,7 +364,7 @@ export default function ReportCard({ isAdmin, fixedStudentId, fixedStudentName }
 
           <Card>
             <div style={{ fontWeight: "800", marginBottom: "10px", color: theme.colors.text }}>Class Teacher's Remark</div>
-            {isAdmin ? (
+            {isAdmin && !readOnly ? (
               <>
                 <textarea
                   value={remark}
