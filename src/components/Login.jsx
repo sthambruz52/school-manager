@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { Mail, Lock, Eye, EyeOff, ChevronLeft, GraduationCap, Users, Briefcase } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ChevronLeft, GraduationCap, Users, Briefcase, ShieldCheck } from "lucide-react";
 import { theme, field } from "../theme";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
+import SelectWithManual from "./ui/SelectWithManual";
 
 const ROLES = [
   ["Student", GraduationCap],
   ["Parent", Users],
-  ["Teacher", Briefcase]
+  ["Teacher", Briefcase],
+  ["Management", ShieldCheck]
 ];
 
 const friendly = (err) => {
@@ -62,6 +64,8 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [role, setRole] = useState("Student");
+  const [fullName, setFullName] = useState("");
+  const [title, setTitle] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -82,6 +86,10 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
     if (!cleanEmail || !password) return setError("Enter your email and password.");
     if (isSignup && password.length < 6) return setError("Choose a password with at least 6 characters.");
 
+        if (isSignup && role === "Management" && (!fullName.trim() || !title.trim())) {
+      return setError("Enter your full name and choose your title.");
+    }
+
     setLoading(true);
     try {
       if (isSignup) {
@@ -91,6 +99,7 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
             email: cleanEmail,
             role,
             status: "active",
+            ...(role === "Management" ? { fullName: fullName.trim(), managementTitle: title.trim(), approved: false } : {}),
             createdAt: new Date()
           })
         );
@@ -222,7 +231,28 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
                 </button>
               }
             />
-
+            {isSignup && role === "Management" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your full name"
+                  style={{ ...field, width: "100%", padding: "13px", fontSize: "15px" }}
+                />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  <SelectWithManual
+                    value={title}
+                    onChange={setTitle}
+                    options={["School Owner", "Proprietor", "Director", "Principal", "Vice Principal", "Head Teacher"]}
+                    placeholder="Select your title"
+                    manualPlaceholder="Type your title"
+                  />
+                </div>
+                <div style={{ background: "#eef0ff", color: theme.colors.primary, fontSize: "13px", fontWeight: "600", padding: "10px 12px", borderRadius: theme.radius.sm }}>
+                  Management accounts are reviewed by the school administrator. You will see the dashboard once you are approved.
+                </div>
+              </div>
+            )}
             {!isSignup && (
               <div style={{ textAlign: "right", marginTop: "-4px" }}>
                 <button

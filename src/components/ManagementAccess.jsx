@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "firebase/firestore";
-import { Search, UserMinus, ShieldCheck } from "lucide-react";
+import { Search, UserMinus, ShieldCheck, Check, X } from "lucide-react";
 import { theme, field } from "../theme";
 import Header from "./ui/Header";
 import Card from "./ui/Card";
@@ -30,6 +30,9 @@ export default function ManagementAccess() {
     return () => unsub();
   }, []);
 
+  const pending = members.filter((m) => m.approved === false);
+  const approvedMembers = members.filter((m) => m.approved !== false);
+
   const findAccount = async () => {
     const wanted = email.trim().toLowerCase();
     setFound(null);
@@ -44,11 +47,15 @@ export default function ManagementAccess() {
         .find((u) => (u.email || "").toLowerCase() === wanted);
 
       if (!match) {
-        setMessage("No account with that email yet. Ask them to sign up on the website first (any role is fine), then search again.");
+        setMessage("No account with that email yet. Ask them to sign up on the website first, then search again.");
       } else if (match.role === "Admin") {
         setMessage("That account is already a full Admin.");
       } else if (match.role === "Management") {
-        setMessage("That account already has management access.");
+        setMessage(
+          match.approved === false
+            ? "That person has already asked for access. Approve them in the Pending requests list above."
+            : "That account already has management access."
+        );
       } else {
         setFound(match);
         setName(match.fullName || "");
@@ -80,7 +87,8 @@ export default function ManagementAccess() {
         role: "Management",
         managementTitle: title.trim(),
         fullName: name.trim(),
-        previousRole: found.role || "Parent"
+        previousRole: found.role || "Parent",
+        approved: true
       });
       setMessage(`${name.trim()} now has view-only access. They can log in and will see the management dashboard.`);
       setFound(null);
@@ -91,6 +99,29 @@ export default function ManagementAccess() {
       alert("Could not grant access. Please try again.");
     }
     setSaving(false);
+  };
+
+  const approve = async (m) => {
+    try {
+      await updateDoc(doc(db, "users", m.id), { approved: true });
+    } catch (err) {
+      alert("Could not approve. Please try again.");
+    }
+  };
+
+  const decline = async (m) => {
+    if (
+      !confirm(
+        `Decline ${m.fullName || m.email}? Their account will be switched to an ordinary Parent account with no management access.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await updateDoc(doc(db, "users", m.id), { role: "Parent", approved: true, managementTitle: "" });
+    } catch (err) {
+      alert("Could not decline. Please try again.");
+    }
   };
 
   const revoke = async (m) => {
@@ -109,20 +140,51 @@ export default function ManagementAccess() {
     <div style={{ marginTop: "10px" }}>
       <Header title="Management Access" subtitle="View-only accounts for owners and directors" />
 
+      {pending.length > 0 && (
+        <Card style={{ marginTop: "14px", border: `1.5px solid ${theme.colors.primary}` }}>
+          <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "4px" }}>
+            Pending requests ({pending.length})
+          </div>
+          <p style={{ ...muted, marginBottom: "8px" }}>
+            These people signed up for management access. Only approve someone you recognise.
+          </p>
+          {pending.map((m, i) => (
+            <div
+              key={m.id}
+              style={{ padding: "12px 0", borderTop: i > 0 ? `1px solid ${theme.colors.border}` : "none" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <Avatar name={m.fullName || m.email} size={48} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: "700", color: theme.colors.text }}>{m.fullName || "(no name)"}</div>
+                  <div style={{ fontSize: "12px", color: theme.colors.textMuted, wordBreak: "break-all" }}>{m.email}</div>
+                  <div style={{ marginTop: "6px" }}>
+                    <StatusPill label={m.managementTitle || "Management"} variant="warning" />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                <Button size="sm" icon={<Check size={14} />} onClick={() => approve(m)}>Approve</Button>
+                <Button size="sm" variant="danger" icon={<X size={14} />} onClick={() => decline(m)}>Decline</Button>
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
       <Card style={{ marginTop: "14px" }}>
         <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "8px" }}>How it works</div>
         <p style={muted}>
-          1. The person signs up on the website with their own email (choose any role).<br />
-          2. Search their email below and give them a name and title.<br />
-          3. They log in and see the management dashboard. They can view everything but change nothing.
+          Owners and directors can sign up on the website by choosing Management. Their request appears above for you to approve.<br />
+          You can also give access to an account that already exists by searching its email below.
         </p>
         <p style={{ ...muted, marginTop: "8px" }}>
-          Use a separate account for each person, not a real student's or teacher's account.
+          Management accounts can view everything but change nothing. Use a separate account for each person, not a real student's or teacher's account.
         </p>
       </Card>
 
       <Card>
-        <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "10px" }}>Give someone access</div>
+        <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "10px" }}>Give an existing account access</div>
         <div style={{ display: "flex", gap: "8px" }}>
           <input
             type="email"
@@ -175,13 +237,13 @@ export default function ManagementAccess() {
       </Card>
 
       <div style={{ fontWeight: "800", color: theme.colors.text, margin: "18px 4px 4px" }}>
-        Accounts with access ({members.length})
+        Accounts with access ({approvedMembers.length})
       </div>
 
-      {members.length === 0 ? (
+      {approvedMembers.length === 0 ? (
         <EmptyState icon={ShieldCheck} text="No management accounts yet." />
       ) : (
-        members.map((m) => (
+        approvedMembers.map((m) => (
           <Card key={m.id}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <Avatar name={m.fullName || m.email} photoURL={m.photoURL} size={52} />
