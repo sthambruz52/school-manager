@@ -17,6 +17,7 @@ import ParentDashboard from "./components/ParentDashboard";
 import SideMenu from "./components/SideMenu";
 import ManagementViews from "./components/ManagementViews";
 import ManagementAccess from "./components/ManagementAccess";
+import PendingApproval from "./components/PendingApproval";
 import BottomNav from "./components/ui/BottomNav";
 import { NAV_ITEMS } from "./navConfig";
 import StaffDirectory from "./components/StaffDirectory";
@@ -284,7 +285,7 @@ function App() {
         <div style={{ maxWidth: '700px', margin: '16px auto 0', padding: '0 20px' }}>
           <span
             onClick={() => setActiveView("home")}
-            style={{ color: '#cdef11', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+            style={{color: '#4338ca', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
           >
             ← Back to Home
           </span>
@@ -499,6 +500,7 @@ function App() {
       <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '11px' }}>
         Developed by EPIC TRIBE RESOURCES INT.
       </div>
+            {userRole === "Management" && userData?.approved === false && <PendingApproval userData={userData} />}
             {userRole === "Management" && activeView !== "home" && (
         <ManagementViews activeView={activeView} students={students} />
       )}
