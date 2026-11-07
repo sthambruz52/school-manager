@@ -9,6 +9,7 @@ import PhotoField from "./ui/PhotoField";
 import AddressFields from "./ui/AddressFields";
 import SubjectPicker from "./ui/SubjectPicker";
 import SelectWithManual from "./ui/SelectWithManual";
+import { useClassOptions } from "../hooks/useClassOptions";
 import FormSection from "./ui/FormSection";
 import Labeled from "./ui/Labeled";
 
@@ -32,7 +33,7 @@ const fullSelect = { flex: "none", width: "100%" };
 export default function StudentProfile({ onComplete, existingData, targetUid }) {
   const d = existingData || {};
   const isEditMode = !!existingData;
-
+  const classOptions = useClassOptions();
   const [fullName, setFullName] = useState(d.fullName || "");
   const [classLevel, setClassLevel] = useState(d.classLevel || "");
   const [term, setTerm] = useState(d.term || "");
@@ -118,7 +119,7 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
                 <SelectWithManual
                   value={classLevel}
                   onChange={setClassLevel}
-                  options={CLASS_LEVELS}
+                  options={classOptions}
                   placeholder="Select class"
                   manualPlaceholder="Type class name"
                   style={fullSelect}

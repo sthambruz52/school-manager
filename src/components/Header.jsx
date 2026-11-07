@@ -32,9 +32,11 @@ export default function Header({ title, subtitle, onBack, rightSlot }) {
         </button>
       )}
       <div style={{ flex: 1 }}>
-        <h2 style={{ margin: 0, fontSize: "19px", fontWeight: "700", color: "#ffffff" }}>{title}</h2>
+        <div role="heading" aria-level={2} style={{ margin: 0, fontSize: "20px", fontWeight: 800, color: "#ffffff", lineHeight: 1.25 }}>
+          {title}
+        </div>
         {subtitle && (
-          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "rgba(255,255,255,0.88)" }}>{subtitle}</p>
+          <div style={{ margin: "3px 0 0", fontSize: "13px", color: "rgba(255,255,255,0.9)" }}>{subtitle}</div>
         )}
       </div>
       {rightSlot}

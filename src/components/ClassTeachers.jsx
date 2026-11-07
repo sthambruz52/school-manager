@@ -17,7 +17,14 @@ export default function ClassTeachers() {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
   const [assigned, setAssigned] = useState({});
+  const [customClasses, setCustomClasses] = useState([]);
 
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "schoolClasses"), (snap) =>
+      setCustomClasses(snap.docs.map((d) => d.data().name).filter(Boolean))
+    );
+    return () => unsub();
+  }, []);
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "Teacher"));
     const unsub = onSnapshot(q, (snap) => setTeachers(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
@@ -55,7 +62,7 @@ export default function ClassTeachers() {
   const extraClasses = [...new Set(students.map((s) => s.classLevel).filter(Boolean))].filter(
     (c) => !DEFAULT_CLASS_LEVELS.includes(c)
   );
-  const allClasses = [...DEFAULT_CLASS_LEVELS, ...extraClasses];
+    const allClasses = [...new Set([...DEFAULT_CLASS_LEVELS, ...customClasses, ...extraClasses])];
   const assignedCount = allClasses.filter((c) => assigned[c]).length;
 
   return (

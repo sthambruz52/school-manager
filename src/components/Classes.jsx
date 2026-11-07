@@ -1,28 +1,37 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { ChevronDown, ChevronUp, LayoutGrid } from "lucide-react";
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
+import { ChevronDown, ChevronUp, LayoutGrid, Plus, X, Trash2 } from "lucide-react";
 import { theme, field } from "../theme";
 import Header from "./ui/Header";
+import HeaderAction from "./ui/HeaderAction";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
 import Avatar from "./ui/Avatar";
 import StatusPill from "./ui/StatusPill";
 import EmptyState from "./ui/EmptyState";
+import SelectWithManual from "./ui/SelectWithManual";
 
 const DEFAULT_CLASS_LEVELS = [
   "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
   "JSS1", "JSS2", "JSS3",
   "SS1", "SS2", "SS3"
 ];
+const PRESET_NEW = ["Creche", "Nursery 1", "Nursery 2", "Nursery 3", "KG 1", "KG 2"];
 
 export default function Classes({ isAdmin }) {
   const [students, setStudents] = useState([]);
   const [classTeachers, setClassTeachers] = useState({});
+  const [customDocs, setCustomDocs] = useState([]);
   const [myRole, setMyRole] = useState("");
   const [openClass, setOpenClass] = useState(null);
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [search, setSearch] = useState("");
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [newClass, setNewClass] = useState("");
+  const [formKey, setFormKey] = useState(0);
+  const [adding, setAdding] = useState(false);
 
   const canSeeContacts = myRole === "Admin" || myRole === "Teacher";
 
@@ -42,22 +51,66 @@ export default function Classes({ isAdmin }) {
   }, []);
 
   useEffect(() => {
+    const unsub = onSnapshot(collection(db, "schoolClasses"), (snap) => {
+      setCustomDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     const unsub = onSnapshot(doc(db, "users", uid), (snap) => setMyRole(snap.exists() ? snap.data().role || "" : ""));
     return () => unsub();
   }, []);
 
+  const customSorted = [...customDocs].sort(
+    (a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0)
+  );
+  const customNames = customSorted.map((c) => c.name).filter(Boolean);
+  const customByName = {};
+  customSorted.forEach((c) => { if (c.name) customByName[c.name] = c; });
+
+  const studentExtras = [...new Set(students.map((s) => s.classLevel).filter(Boolean))].filter(
+    (c) => !DEFAULT_CLASS_LEVELS.includes(c) && !customNames.includes(c)
+  );
+  const allClasses = [...DEFAULT_CLASS_LEVELS, ...customNames, ...studentExtras];
+
+  const addClass = async () => {
+    const name = newClass.trim().replace(/\s+/g, " ");
+    if (!name) return alert("Choose or type a class name.");
+    if (name.includes("/")) return alert("Class names can't contain a / character.");
+    if (name.length > 40) return alert("That class name is too long.");
+    if (allClasses.some((c) => c.toLowerCase() === name.toLowerCase())) {
+      return alert(`${name} is already in the list.`);
+    }
+
+    setAdding(true);
+    try {
+      await addDoc(collection(db, "schoolClasses"), { name, createdAt: new Date() });
+      setNewClass("");
+      setFormKey((k) => k + 1);
+      setShowAdd(false);
+    } catch (err) {
+      alert("Could not add the class. Please try again.");
+    }
+    setAdding(false);
+  };
+
+  const removeClass = async (docId, name) => {
+    if (!confirm(`Remove ${name}? This only works for a class with no students.`)) return;
+    try {
+      await deleteDoc(doc(db, "schoolClasses", docId));
+    } catch (err) {
+      alert("Could not remove the class. Please try again.");
+    }
+  };
+
   const toggleStatus = async (userId, currentStatus) => {
     const newStatus = currentStatus === "disabled" ? "active" : "disabled";
     if (!confirm(`${newStatus === "disabled" ? "Disable" : "Enable"} this student's account?`)) return;
     await updateDoc(doc(db, "users", userId), { status: newStatus });
   };
-
-  const extraClasses = [...new Set(students.map((s) => s.classLevel).filter(Boolean))].filter(
-    (c) => !DEFAULT_CLASS_LEVELS.includes(c)
-  );
-  const allClasses = [...DEFAULT_CLASS_LEVELS, ...extraClasses];
 
   const phoneLink = (value) => {
     if (!value) return "-";
@@ -67,7 +120,38 @@ export default function Classes({ isAdmin }) {
 
   return (
     <div style={{ marginTop: "10px" }}>
-      <Header title="Classes" subtitle={`${students.length} student${students.length !== 1 ? "s" : ""} across ${allClasses.length} classes`} />
+      <Header
+        title="Classes"
+        subtitle={`${students.length} student${students.length !== 1 ? "s" : ""} across ${allClasses.length} classes`}
+        rightSlot={
+          isAdmin ? (
+            <HeaderAction
+              icon={showAdd ? <X size={16} /> : <Plus size={16} />}
+              label={showAdd ? "Close" : "Add Class"}
+              onClick={() => setShowAdd(!showAdd)}
+            />
+          ) : null
+        }
+      />
+
+      {isAdmin && showAdd && (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "10px" }}>Add a class</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+            <SelectWithManual
+              key={formKey}
+              value={newClass}
+              onChange={setNewClass}
+              options={PRESET_NEW.filter((p) => !allClasses.some((c) => c.toLowerCase() === p.toLowerCase()))}
+              placeholder="Select a class"
+              manualPlaceholder="Type the class name"
+            />
+          </div>
+          <div style={{ marginTop: "12px" }}>
+            <Button full onClick={addClass} disabled={adding}>{adding ? "Adding..." : "Add Class"}</Button>
+          </div>
+        </Card>
+      )}
 
       <input
         value={search}
@@ -86,6 +170,7 @@ export default function Classes({ isAdmin }) {
 
         const isOpen = openClass === c || !!search;
         const teacherName = classTeachers[c];
+        const customDoc = customByName[c];
 
         return (
           <Card key={c} style={{ padding: 0, overflow: "hidden" }}>
@@ -143,6 +228,14 @@ export default function Classes({ isAdmin }) {
                       )}
                     </div>
                   ))
+                )}
+
+                {isAdmin && customDoc && roster.length === 0 && (
+                  <div style={{ padding: "10px 16px 14px" }}>
+                    <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => removeClass(customDoc.id, c)}>
+                      Remove class
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
