@@ -5,6 +5,8 @@ import { theme } from "../theme";
 import Button from "./ui/Button";
 
 export default function PendingApproval({ userData }) {
+  const isManagement = userData?.role === "Management";
+
   return (
     <div
       style={{
@@ -47,7 +49,10 @@ export default function PendingApproval({ userData }) {
         </div>
         <div style={{ fontWeight: "800", fontSize: "20px", color: theme.colors.text }}>Waiting for approval</div>
         <p style={{ color: theme.colors.textMuted, fontSize: "14px", lineHeight: 1.6, margin: "10px 0 20px" }}>
-          Thank you{userData?.fullName ? `, ${userData.fullName}` : ""}. Your request for {userData?.managementTitle || "management"} access has been sent to the school administrator. You will see the dashboard as soon as it is approved.
+          {isManagement
+            ? `Thank you${userData?.fullName ? `, ${userData.fullName}` : ""}. Your request for ${userData?.managementTitle || "management"} access has been sent to the school administrator.`
+            : "Your new account has been sent to the school administrator for approval."}{" "}
+          You will be able to use the app as soon as it is approved.
         </p>
         <Button full onClick={() => window.location.reload()}>I've been approved. Refresh</Button>
         <div style={{ marginTop: "10px" }}>

@@ -18,6 +18,7 @@ import SideMenu from "./components/SideMenu";
 import ManagementViews from "./components/ManagementViews";
 import ManagementAccess from "./components/ManagementAccess";
 import PendingApproval from "./components/PendingApproval";
+import PolicyLink from "./components/PolicyLink";
 import BottomNav from "./components/ui/BottomNav";
 import { NAV_ITEMS } from "./navConfig";
 import StaffDirectory from "./components/StaffDirectory";
@@ -498,9 +499,9 @@ function App() {
       )}
 
       <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '11px' }}>
-        Developed by EPIC TRIBE RESOURCES INT.
+                Developed by EPIC TRIBE RESOURCES INT. &nbsp;•&nbsp; <PolicyLink />
       </div>
-            {userRole === "Management" && userData?.approved === false && <PendingApproval userData={userData} />}
+                  {userData?.approved === false && <PendingApproval userData={userData} />}
             {userRole === "Management" && activeView !== "home" && (
         <ManagementViews activeView={activeView} students={students} />
       )}

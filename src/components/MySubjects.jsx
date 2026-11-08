@@ -38,7 +38,7 @@ export default function MySubjects({ userData }) {
 
   const subjects = userData.subjects || [];
   const teachersFor = (name) =>
-    teachers.filter((t) => t.status !== "disabled" && (t.subjects || []).includes(name));
+    teachers.filter((t) => t.status !== "disabled" && t.approved !== false && (t.subjects || []).includes(name));
 
   return (
     <div style={{ marginTop: "10px" }}>

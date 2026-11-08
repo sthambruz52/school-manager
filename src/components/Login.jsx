@@ -7,7 +7,7 @@ import { theme, field } from "../theme";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
 import SelectWithManual from "./ui/SelectWithManual";
-
+import PolicyLink from "./PolicyLink";
 const ROLES = [
   ["Student", GraduationCap],
   ["Parent", Users],
@@ -94,12 +94,22 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
     try {
       if (isSignup) {
         const cred = await withRetry(() => createUserWithEmailAndPassword(auth, cleanEmail, password));
+                let needsApproval = role === "Teacher" || role === "Management";
+        if (!needsApproval) {
+          try {
+            const sec = await getDoc(doc(db, "settings", "security"));
+            needsApproval = sec.exists() && sec.data().requireApproval === true;
+          } catch (e) {
+            /* ignore */
+          }
+        }
         await withRetry(() =>
           setDoc(doc(db, "users", cred.user.uid), {
             email: cleanEmail,
             role,
             status: "active",
             ...(role === "Management" ? { fullName: fullName.trim(), managementTitle: title.trim(), approved: false } : {}),
+                        ...(needsApproval ? { approved: false } : {}),
             createdAt: new Date()
           })
         );
@@ -275,7 +285,17 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
                 {notice}
               </div>
             )}
+            {isSignup && role === "Teacher" && (
+              <div style={{ background: "#eef0ff", color: theme.colors.primary, fontSize: "13px", fontWeight: "600", padding: "10px 12px", borderRadius: theme.radius.sm }}>
+                Teacher accounts are reviewed by the school administrator. You will see your dashboard once you are approved.
+              </div>
+            )}
 
+            {isSignup && (
+              <div style={{ fontSize: "12px", color: theme.colors.textMuted, textAlign: "center", lineHeight: 1.5 }}>
+                By creating an account you agree to the school's <PolicyLink style={{ color: theme.colors.primary, fontWeight: "700" }} />.
+              </div>
+            )}
             <Button type="submit" full disabled={loading}>
               {loading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
             </Button>

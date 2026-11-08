@@ -121,7 +121,7 @@ export default function StudentOverview({ studentId, showExtras = false, fallbac
   const ctPhone = ctDoc?.phone ? String(ctDoc.phone).replace(/[^0-9+]/g, "") : "";
 
   const roster = [...classmates].sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
-  const activeTeachers = teachers.filter((t) => t.status !== "disabled");
+  const activeTeachers = teachers.filter((t) => t.status !== "disabled" && t.approved !== false);
   const name = student?.fullName || fallbackName;
 
   const heading = { fontWeight: "800", color: theme.colors.text };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LandingPage from "./LandingPage";
 import Onboarding from "./Onboarding";
+import PolicyLink from "./PolicyLink";
 
 const KEY = "onboardingSeen";
 
@@ -24,5 +25,13 @@ export default function PublicHome() {
   };
 
   if (showSlides) return <Onboarding onDone={finish} />;
-  return <LandingPage />;
+
+  return (
+    <>
+      <LandingPage />
+      <div style={{ textAlign: "center", padding: "0 16px 28px", fontSize: "12px", color: "#6b7280" }}>
+        <PolicyLink />
+      </div>
+    </>
+  );
 }

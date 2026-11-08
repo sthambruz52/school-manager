@@ -77,7 +77,7 @@ export default function ClassTeachers() {
         const teacherId = assigned[c] || "";
         const current = teachers.find((t) => t.id === teacherId);
         const count = students.filter((s) => s.classLevel === c).length;
-        const options = teachers.filter((t) => t.status !== "disabled" || t.id === teacherId);
+        const options = teachers.filter((t) => (t.status !== "disabled" && t.approved !== false) || t.id === teacherId);
 
         return (
           <Card key={c}>

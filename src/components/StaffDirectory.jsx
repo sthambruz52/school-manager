@@ -43,7 +43,7 @@ export default function StaffDirectory({ isAdmin }) {
     const unsub = onSnapshot(q, (snap) => {
       setTeachers(
         snap.docs
-          .filter((d) => d.data().status !== "disabled")
+          .filter((d) => d.data().status !== "disabled" && d.data().approved !== false)
           .map((d) => ({
             id: d.id,
             name: d.data().fullName || "(no name)",
