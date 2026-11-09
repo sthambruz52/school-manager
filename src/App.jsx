@@ -19,6 +19,7 @@ import ManagementViews from "./components/ManagementViews";
 import ManagementAccess from "./components/ManagementAccess";
 import PendingApproval from "./components/PendingApproval";
 import PolicyLink from "./components/PolicyLink";
+import VerifyEmailBanner from "./components/VerifyEmailBanner";
 import BottomNav from "./components/ui/BottomNav";
 import { NAV_ITEMS } from "./navConfig";
 import StaffDirectory from "./components/StaffDirectory";
@@ -505,6 +506,7 @@ function App() {
             {userRole === "Management" && activeView !== "home" && (
         <ManagementViews activeView={activeView} students={students} />
       )}
+            <VerifyEmailBanner user={user} />      
             <div style={{ height: '100px' }} />
       {!menuOpen && (
         <BottomNav

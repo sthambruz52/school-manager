@@ -63,3 +63,8 @@ button:disabled {
     box-sizing: border-box;
   }
 }
+/* Keep text inside the indigo page headers white, whatever other styles say */
+.app-header,
+.app-header * {
+  color: #ffffff !important;
+}

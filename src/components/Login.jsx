@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Mail, Lock, Eye, EyeOff, ChevronLeft, GraduationCap, Users, Briefcase, ShieldCheck } from "lucide-react";
 import { theme, field } from "../theme";
@@ -94,7 +94,12 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
     try {
       if (isSignup) {
         const cred = await withRetry(() => createUserWithEmailAndPassword(auth, cleanEmail, password));
-                let needsApproval = role === "Teacher" || role === "Management";
+                try {
+          await sendEmailVerification(cred.user);
+        } catch (e) {
+          /* the account is still created if the email fails */
+        }        
+        let needsApproval = role === "Teacher" || role === "Management";
         if (!needsApproval) {
           try {
             const sec = await getDoc(doc(db, "settings", "security"));
