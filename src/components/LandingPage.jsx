@@ -1,376 +1,598 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { doc, onSnapshot, collection, query, where, orderBy, limit, onSnapshot as onSnap } from "firebase/firestore";
-import { GraduationCap, Users, BookOpen, ShieldCheck, Heart, Award, MapPin, Phone, Mail, Clock, ArrowRight, Trophy, Briefcase, UserPlus, FileEdit, ClipboardCheck, Rocket, ChevronDown, ChevronUp } from "lucide-react";
+import { collection, doc, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import {
+  BarChart3, MessageCircle, CreditCard, ShieldCheck, UserPlus, FileEdit, ClipboardCheck, Rocket,
+  ChevronDown, ChevronUp, MapPin, Phone, Mail, Clock, Briefcase
+} from "lucide-react";
+import { theme } from "../theme";
 import Login from "./Login";
 import PublicChatWidget from "./PublicChatWidget";
+
+const quiet = () => {};
+
+const ACTIVITY_COLORS = {
+  Sports: "#16a34a",
+  Awards: "#d97706",
+  "Quiz Competition": "#9333ea",
+  "Debate Competition": "#0284c7",
+  Events: "#4f46e5"
+};
+
+const FEATURES = [
+  {
+    icon: BarChart3,
+    tone: { bg: "#eef0ff", fg: "#4f46e5" },
+    title: "Results You Can Trust",
+    text: "Marks, averages and printable report cards are worked out automatically every term."
+  },
+  {
+    icon: MessageCircle,
+    tone: { bg: "#e0f2fe", fg: "#0284c7" },
+    title: "Always Connected",
+    text: "Parents follow progress, read school notices and chat with the school office any time."
+  },
+  {
+    icon: CreditCard,
+    tone: { bg: "#dcfce7", fg: "#16a34a" },
+    title: "Fees Made Clear",
+    text: "See what has been paid and what remains, and download a receipt in seconds."
+  },
+  {
+    icon: ShieldCheck,
+    tone: { bg: "#f3e8ff", fg: "#9333ea" },
+    title: "Secure Accounts",
+    text: "Every account is protected by a password, and staff accounts are approved by the school."
+  }
+];
+
+const STEPS = [
+  { icon: UserPlus, title: "Register", text: "Create an account as a Student or Parent in just a few minutes." },
+  { icon: FileEdit, title: "Complete Profile", text: "Fill in class, subjects, and family details for your records." },
+  { icon: ClipboardCheck, title: "Get Confirmed", text: "Our admin team reviews and confirms your enrollment." },
+  { icon: Rocket, title: "Start Learning", text: "Access grades, attendance, fees, and more, right away." }
+];
+
+const card = { background: "white", borderRadius: theme.radius.md, boxShadow: theme.shadow };
+
+function Section({ title, subtitle, children }) {
+  return (
+    <div style={{ padding: "46px 0 0" }}>
+      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "0 16px" }}>
+        <div style={{ marginBottom: "22px", textAlign: "center" }}>
+          <div role="heading" aria-level={2} style={{ fontSize: "24px", fontWeight: 800, color: theme.colors.text }}>
+            {title}
+          </div>
+          {subtitle && <div style={{ fontSize: "14px", color: theme.colors.textMuted, marginTop: "6px" }}>{subtitle}</div>}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ContactRow({ icon: Icon, tone, children }) {
+  return (
+    <div style={{ ...card, padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", flex: "1 1 260px" }}>
+      <div
+        style={{
+          width: "44px",
+          height: "44px",
+          borderRadius: "12px",
+          background: tone.bg,
+          color: tone.fg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}
+      >
+        <Icon size={22} />
+      </div>
+      <div style={{ fontSize: "14px", color: theme.colors.text, lineHeight: 1.5, wordBreak: "break-word", minWidth: 0 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
-  const [schoolInfo, setSchoolInfo] = useState(null);
-  const [contactInfo, setContactInfo] = useState(null);
-  const [heroPhotos, setHeroPhotos] = useState([]);
-  const [latestActivities, setLatestActivities] = useState([]);
-  const [staffPreview, setStaffPreview] = useState([]);
-    const [testimonials, setTestimonials] = useState([]);
-  const [faqs, setFaqs] = useState([]);
-  const [subjectCount, setSubjectCount] = useState(0);
   const [mode, setMode] = useState(null);
+  const [school, setSchool] = useState(null);
+  const [contact, setContact] = useState(null);
+  const [subjectCount, setSubjectCount] = useState(0);
+  const [photos, setPhotos] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [faqs, setFaqs] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "schoolInfo"), (docSnap) => {
-      if (docSnap.exists()) setSchoolInfo(docSnap.data());
-    });
-    return () => unsub();
-  }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "contactInfo"), (docSnap) => {
-      if (docSnap.exists()) setContactInfo(docSnap.data());
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"), limit(5));
-    const unsub = onSnap(q, (snap) => setHeroPhotos(snap.docs.map((d) => d.data().imageURL)));
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, "activities"), orderBy("createdAt", "desc"), limit(3));
-    const unsub = onSnap(q, (snap) => setLatestActivities(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, []);
-  useEffect(() => {
-    const q = query(collection(db, "staff"), orderBy("createdAt", "desc"), limit(4));
-    const unsub = onSnap(q, (snap) => setStaffPreview(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, []);
-  useEffect(() => {
-    const q = query(collection(db, "testimonials"), orderBy("createdAt", "desc"), limit(6));
-    const unsub = onSnap(q, (snap) => setTestimonials(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, "faqs"), orderBy("createdAt", "asc"));
-    const unsub = onSnap(q, (snap) => setFaqs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const unsub = onSnap(collection(db, "subjects"), (snap) => setSubjectCount(snap.size));
-    return () => unsub();
+    const list = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const subs = [
+      onSnapshot(doc(db, "settings", "schoolInfo"), (s) => setSchool(s.exists() ? s.data() : null), quiet),
+      onSnapshot(doc(db, "settings", "contactInfo"), (s) => setContact(s.exists() ? s.data() : null), quiet),
+      onSnapshot(collection(db, "subjects"), (s) => setSubjectCount(s.size), quiet),
+      onSnapshot(query(collection(db, "gallery"), orderBy("createdAt", "desc"), limit(8)), (s) => setPhotos(list(s)), quiet),
+      onSnapshot(query(collection(db, "activities"), orderBy("createdAt", "desc"), limit(3)), (s) => setActivities(list(s)), quiet),
+      onSnapshot(query(collection(db, "staff"), orderBy("createdAt", "desc"), limit(4)), (s) => setStaff(list(s)), quiet),
+      onSnapshot(query(collection(db, "testimonials"), orderBy("createdAt", "desc"), limit(6)), (s) => setTestimonials(list(s)), quiet),
+      onSnapshot(query(collection(db, "faqs"), orderBy("createdAt", "asc")), (s) => setFaqs(list(s)), quiet)
+    ];
+    return () => subs.forEach((u) => u());
   }, []);
 
   if (mode) {
-    return (
-      <div style={{ background: "#fdf6e9", minHeight: "100vh" }}>
-        <div style={{ maxWidth: "420px", margin: "0 auto", padding: "20px" }}>
-          <p onClick={() => setMode(null)} style={{ color: "#1f4d3a", cursor: "pointer", fontWeight: "bold", marginBottom: "0" }}>
-            ← Back
-          </p>
-          <Login onLoginSuccess={() => {}} initialMode={mode} onBack={() => setMode(null)} />
-        </div>
-      </div>
-    );
+    return <Login onLoginSuccess={() => {}} initialMode={mode} onBack={() => setMode(null)} />;
   }
 
-  const heroImage = heroPhotos[0];
-  const schoolName = schoolInfo?.schoolName || "Our School";
-
-  const FEATURES = [
-    { icon: GraduationCap, title: "Quality Education", text: "A curriculum built to challenge, inspire, and prepare every child for what's next." },
-    { icon: Heart, title: "Dedicated Teachers", text: "Experienced educators who know each child by name, not just by number." },
-    { icon: ShieldCheck, title: "Safe Environment", text: "A secure, nurturing campus where every child is free to learn and grow." },
-    { icon: Award, title: "Holistic Development", text: "Academics, sports, arts, and character — we build the whole child." },
-  ];
-
-  const sectionTitleStyle = { textAlign: "center", color: "#1f4d3a", fontSize: "24px", marginBottom: "8px" };
-  const sectionSubStyle = { textAlign: "center", color: "#888", fontSize: "14px", marginBottom: "30px" };
+  const heroPhoto = photos[0]?.imageURL;
+  const digits = (v) => String(v || "").replace(/[^0-9+]/g, "");
+  const hasContact = contact && (contact.address || contact.phone1 || contact.phone2 || contact.email || contact.officeHours);
 
   return (
-    <div style={{ background: "#fdf6e9", minHeight: "100vh", fontFamily: "Arial" }}>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: "white", position: "sticky", top: 0, zIndex: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>
-        <span style={{ fontWeight: "bold", color: "#1f4d3a", fontSize: "17px" }}>{schoolName}</span>
-        <button onClick={() => setMode("login")} style={{ background: "#1f4d3a", color: "white", border: "none", padding: "8px 18px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>
-          Login
-        </button>
-      </div>
-
-      <div style={{
-        position: "relative",
-        minHeight: "520px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        color: "white",
-        padding: "50px 20px",
-        backgroundImage: heroImage
-          ? `linear-gradient(rgba(31,77,58,0.78), rgba(31,77,58,0.9)), url(${heroImage})`
-          : "linear-gradient(135deg, #1f4d3a, #2e6b4f)",
-        backgroundSize: "cover",
-        backgroundPosition: "center"
-      }}>
-        <div style={{ maxWidth: "560px" }}>
-          <div style={{ display: "inline-block", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.4)", padding: "6px 16px", borderRadius: "20px", fontSize: "13px", fontWeight: "bold", marginBottom: "18px" }}>
-            🎓 Admissions Open — Enroll Today
-          </div>
-          <h1 style={{
-            fontSize: "clamp(26px, 6vw, 42px)",
-            margin: "0 0 14px",
-            lineHeight: "1.25",
+    <div style={{ background: theme.colors.bg, minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
+      <div
+        style={{
+          background: theme.gradient("#4338ca", "#7c3aed"),
+          color: "#ffffff",
+          padding: `34px 20px ${heroPhoto ? "96px" : "40px"}`,
+          textAlign: "center"
+        }}
+      >
+        <img
+          src="/logo.jpg"
+          alt=""
+          style={{
+            width: "84px",
+            height: "84px",
+            borderRadius: "20px",
+            background: "white",
+            objectFit: "contain",
+            padding: "6px",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.25)"
+          }}
+        />
+        <div
+          role="heading"
+          aria-level={1}
+          style={{
+            fontSize: "clamp(22px, 5.5vw, 34px)",
+            fontWeight: 800,
+            textTransform: "uppercase",
             color: "#ffffff",
-            fontWeight: "800",
-            letterSpacing: "0.5px",
-            textShadow: "0 2px 10px rgba(0,0,0,0.35)"
-          }}>
-            {schoolName}
-          </h1>
-          <p style={{
-            fontSize: "16px",
-            color: "#f2d98a",
-            margin: "0 0 8px",
-            fontStyle: "italic",
-            fontWeight: "600",
-            letterSpacing: "0.3px"
-          }}>
-            {schoolInfo?.tagline || "Nurturing minds, shaping futures"}
+            maxWidth: "680px",
+            margin: "16px auto 6px",
+            lineHeight: 1.2
+          }}
+        >
+          {school?.schoolName || "Welcome"}
+        </div>
+        {school?.tagline && (
+          <div style={{ fontStyle: "italic", fontSize: "15px", color: "rgba(255,255,255,0.92)" }}>{school.tagline}</div>
+        )}
+
+        <div
+          style={{
+            display: "inline-block",
+            marginTop: "16px",
+            background: "rgba(255,255,255,0.18)",
+            padding: "6px 16px",
+            borderRadius: "999px",
+            fontSize: "13px",
+            fontWeight: 700,
+            color: "#ffffff"
+          }}
+        >
+          Admissions Open
+        </div>
+
+        {school?.description && (
+          <p style={{ maxWidth: "560px", margin: "16px auto 0", fontSize: "14px", lineHeight: 1.7, color: "rgba(255,255,255,0.9)" }}>
+            {school.description}
           </p>
-          <p style={{ fontSize: "15px", lineHeight: "1.7", opacity: 0.9, margin: "0 0 30px" }}>
-            {schoolInfo?.description || "We're committed to giving every child the foundation, confidence, and character they need to thrive — in the classroom and beyond."}
-          </p>
+        )}
 
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <button
-              onClick={() => setMode("signup")}
-              style={{ display: "flex", alignItems: "center", gap: "6px", background: "white", color: "#1f4d3a", border: "none", padding: "13px 28px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px", cursor: "pointer" }}
-            >
-              Register Now <ArrowRight size={16} />
-            </button>
-            <button
-              onClick={() => setMode("login")}
-              style={{ background: "transparent", color: "white", border: "2px solid white", padding: "13px 28px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px", cursor: "pointer" }}
-            >
-              Login
-            </button>
-          </div>
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginTop: "22px" }}>
+          <button
+            onClick={() => setMode("signup")}
+            style={{
+              background: "white",
+              color: theme.colors.primary,
+              border: "none",
+              borderRadius: theme.radius.md,
+              padding: "14px 28px",
+              fontWeight: 800,
+              fontSize: "15px"
+            }}
+          >
+            Register Now
+          </button>
+          <button
+            onClick={() => setMode("login")}
+            style={{
+              background: "rgba(255,255,255,0.16)",
+              color: "#ffffff",
+              border: "1.5px solid rgba(255,255,255,0.6)",
+              borderRadius: theme.radius.md,
+              padding: "14px 28px",
+              fontWeight: 800,
+              fontSize: "15px"
+            }}
+          >
+            Log In
+          </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: "800px", margin: "0 auto", padding: "26px 20px", display: "flex", justifyContent: "center", gap: "40px", flexWrap: "wrap", textAlign: "center" }}>
-        <div>
-          <div style={{ fontSize: "28px", fontWeight: "bold", color: "#1f4d3a" }}>{subjectCount}+</div>
-          <div style={{ fontSize: "13px", color: "#666" }}>Subjects Offered</div>
-        </div>
-        <div>
-          <div style={{ fontSize: "20px", fontWeight: "bold", color: "#1f4d3a" }}>Growing</div>
-          <div style={{ fontSize: "13px", color: "#666" }}>Student Community</div>
-        </div>
-        <div>
-          <div style={{ fontSize: "20px", fontWeight: "bold", color: "#1f4d3a" }}>Dedicated</div>
-          <div style={{ fontSize: "13px", color: "#666" }}>Teaching Staff</div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: "900px", margin: "20px auto 0", padding: "20px" }}>
-        <h2 style={sectionTitleStyle}>Why Families Choose Us</h2>
-        <p style={sectionSubStyle}>Everything your child needs to succeed, in one place.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-          {FEATURES.map((f) => {
-            const Icon = f.icon;
-            return (
-              <div key={f.title} style={{ background: "white", borderRadius: "12px", padding: "22px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px", color: "#1f4d3a" }}>
-                  <Icon size={32} />
-                </div>
-                <h3 style={{ margin: "0 0 8px", fontSize: "16px" }}>{f.title}</h3>
-                <p style={{ margin: 0, fontSize: "13px", color: "#666", lineHeight: "1.5" }}>{f.text}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {heroPhotos.length > 1 && (
-        <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
-          <h2 style={sectionTitleStyle}>Life at {schoolName}</h2>
-          <p style={sectionSubStyle}>A glimpse into our everyday moments.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "10px" }}>
-            {heroPhotos.slice(1).map((url, i) => (
-              <img key={i} src={url} alt="" style={{ width: "100%", height: "150px", objectFit: "cover", borderRadius: "10px" }} />
-            ))}
-          </div>
+      {heroPhoto && (
+        <div style={{ maxWidth: "720px", margin: "-64px auto 0", padding: "0 16px" }}>
+          <img
+            src={heroPhoto}
+            alt=""
+            style={{
+              width: "100%",
+              height: "clamp(180px, 40vw, 280px)",
+              objectFit: "cover",
+              borderRadius: theme.radius.lg,
+              boxShadow: "0 12px 28px rgba(30,27,46,0.25)",
+              display: "block"
+            }}
+          />
         </div>
       )}
 
-      {latestActivities.length > 0 && (
-        <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
-          <h2 style={sectionTitleStyle}>Latest Happenings</h2>
-          <p style={sectionSubStyle}>Sports, awards, and everything in between.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-            {latestActivities.map((a) => (
-              <div key={a.id} style={{ background: "white", borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                {a.photoURL && <img src={a.photoURL} alt="" style={{ width: "100%", height: "130px", objectFit: "cover" }} />}
-                <div style={{ padding: "14px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#1f4d3a", color: "white", fontSize: "11px", fontWeight: "bold", padding: "2px 10px", borderRadius: "10px" }}>
-                    <Trophy size={12} /> {a.category}
-                  </span>
-                  <h4 style={{ margin: "8px 0 4px", fontSize: "15px" }}>{a.title}</h4>
-                  <p style={{ margin: 0, fontSize: "13px", color: "#666" }}>{a.description?.slice(0, 90)}{a.description?.length > 90 ? "…" : ""}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-            {staffPreview.length > 0 && (
-        <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
-          <h2 style={sectionTitleStyle}>Meet Our Team</h2>
-          <p style={sectionSubStyle}>The people dedicated to your child's growth.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "16px" }}>
-            {staffPreview.map((s) => (
-              <div key={s.id} style={{ background: "white", borderRadius: "12px", padding: "18px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                {s.photoURL ? (
-                  <img src={s.photoURL} alt="" style={{ width: "70px", height: "70px", borderRadius: "50%", objectFit: "cover", margin: "0 auto 10px" }} />
-                ) : (
-                  <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "#fdf6e9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", color: "#1f4d3a" }}>
-                    <Briefcase size={26} />
-                  </div>
-                )}
-                <div style={{ fontWeight: "bold", fontSize: "14px" }}>{s.name}</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>{s.title}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {testimonials.length > 0 && (
-      <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
-        <h2 style={sectionTitleStyle}>What Our Families Say</h2>
-        <p style={sectionSubStyle}>Real experiences from our school community.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
-          {testimonials.map((t) => (
-            <div key={t.id} style={{ background: "white", borderRadius: "12px", padding: "22px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-              <div style={{ color: "#d4a017", fontSize: "18px", marginBottom: "10px" }}>★★★★★</div>
-              <p style={{ fontSize: "14px", color: "#444", lineHeight: "1.6", fontStyle: "italic", margin: "0 0 14px" }}>
-                "{t.quote}"
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{
-                  width: "40px", height: "40px", borderRadius: "50%",
-                  background: "#1f4d3a", color: "white", fontWeight: "bold", fontSize: "15px",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                }}>
-                  {t.name.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ fontWeight: "bold", fontSize: "14px", color: "#1f4d3a" }}>{t.name}</div>
-                  <div style={{ fontSize: "12px", color: "#888" }}>{t.role}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      )}
-
-      <div style={{ maxWidth: "900px", margin: "50px auto 0", padding: "0 20px" }}>
-        <h2 style={sectionTitleStyle}>How to Join Us</h2>
-        <p style={sectionSubStyle}>Getting your child enrolled is simple and quick.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-          {[
-            { icon: UserPlus, step: "1", title: "Register", text: "Create an account as a Student or Parent in just a few minutes." },
-            { icon: FileEdit, step: "2", title: "Complete Profile", text: "Fill in class, subjects, and family details for your records." },
-            { icon: ClipboardCheck, step: "3", title: "Get Confirmed", text: "Our admin team reviews and confirms your enrollment." },
-            { icon: Rocket, step: "4", title: "Start Learning", text: "Access grades, attendance, fees, and more, right away." },
-          ].map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.step} style={{ background: "white", borderRadius: "12px", padding: "22px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", position: "relative" }}>
-                <div style={{ position: "absolute", top: "12px", right: "16px", fontSize: "13px", fontWeight: "bold", color: "#d4a017" }}>
-                  {s.step}
-                </div>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px", color: "#1f4d3a" }}>
-                  <Icon size={30} />
-                </div>
-                <h3 style={{ margin: "0 0 8px", fontSize: "15px" }}>{s.title}</h3>
-                <p style={{ margin: 0, fontSize: "13px", color: "#666", lineHeight: "1.5" }}>{s.text}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {faqs.length > 0 && (
-      <div style={{ maxWidth: "700px", margin: "50px auto 0", padding: "0 20px" }}>
-        <h2 style={sectionTitleStyle}>Frequently Asked Questions</h2>
-        <p style={sectionSubStyle}>Everything you might want to know before registering.</p>
-        {faqs.map((item, i) => (
-          <div key={item.id} style={{ background: "white", borderRadius: "10px", marginBottom: "10px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-            <div
-              onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              style={{ padding: "16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: "bold", color: "#1f4d3a", fontSize: "14px" }}
-            >
-              {item.question}
-              {openFaq === i ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </div>
-            {openFaq === i && (
-              <div style={{ padding: "0 16px 16px", fontSize: "13px", color: "#666", lineHeight: "1.6" }}>
-                {item.answer}
-              </div>
-            )}
+      <div style={{ maxWidth: "720px", margin: "26px auto 0", padding: "0 16px", display: "flex", gap: "10px" }}>
+        {[
+          [subjectCount || "-", "Subjects"],
+          ["Growing", "Community"],
+          ["Dedicated", "Teachers"]
+        ].map(([value, label]) => (
+          <div key={label} style={{ ...card, flex: 1, textAlign: "center", padding: "16px 6px" }}>
+            <div style={{ fontSize: "18px", fontWeight: 800, color: theme.colors.primary }}>{value}</div>
+            <div style={{ fontSize: "12px", color: theme.colors.textMuted, marginTop: "2px" }}>{label}</div>
           </div>
         ))}
       </div>
+
+      <Section title="Why Choose Us" subtitle="Everything your family needs, in one simple app.">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "14px" }}>
+          {FEATURES.map((f) => {
+            const Icon = f.icon;
+            return (
+              <div key={f.title} style={{ ...card, padding: "20px" }}>
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "14px",
+                    background: f.tone.bg,
+                    color: f.tone.fg,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Icon size={24} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: "16px", color: theme.colors.text, margin: "14px 0 6px" }}>{f.title}</div>
+                <div style={{ fontSize: "14px", color: theme.colors.textMuted, lineHeight: 1.6 }}>{f.text}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {photos.length > 1 && (
+        <Section title="Life at School" subtitle="A look at what happens here.">
+          <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+            {photos.map((p) => (
+              <div key={p.id} style={{ flexShrink: 0, width: "190px" }}>
+                <img
+                  src={p.imageURL}
+                  alt={p.caption || ""}
+                  style={{ width: "190px", height: "135px", objectFit: "cover", borderRadius: theme.radius.md, boxShadow: theme.shadow, display: "block" }}
+                />
+                {p.caption && <div style={{ fontSize: "12px", color: theme.colors.textMuted, marginTop: "6px" }}>{p.caption}</div>}
+              </div>
+            ))}
+          </div>
+        </Section>
       )}
-      <div style={{ background: "#1f4d3a", color: "white", marginTop: "50px", padding: "40px 20px" }}>
-        <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "22px", marginBottom: "10px" }}>Ready to Join Our School Community?</h2>
-          <p style={{ opacity: 0.9, marginBottom: "20px", fontSize: "14px" }}>
-            Registration takes less than five minutes — for students, parents, and teachers alike.
+
+      {activities.length > 0 && (
+        <Section title="Latest Activities" subtitle="Sports, awards and events from our school community.">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "14px" }}>
+            {activities.map((a) => {
+              const color = ACTIVITY_COLORS[a.category] || "#64748b";
+              return (
+                <div key={a.id} style={{ ...card, overflow: "hidden" }}>
+                  {a.photoURL && (
+                    <img src={a.photoURL} alt="" style={{ width: "100%", height: "150px", objectFit: "cover", display: "block" }} />
+                  )}
+                  <div style={{ padding: "14px 16px" }}>
+                    <span
+                      style={{
+                        background: `${color}22`,
+                        color,
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        padding: "4px 10px",
+                        borderRadius: "999px"
+                      }}
+                    >
+                      {a.category}
+                    </span>
+                    <div style={{ fontWeight: 800, fontSize: "16px", color: theme.colors.text, margin: "10px 0 4px" }}>{a.title}</div>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: theme.colors.textMuted,
+                        lineHeight: 1.6,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden"
+                      }}
+                    >
+                      {a.description}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {staff.length > 0 && (
+        <Section title="Meet Our Team" subtitle="The people dedicated to your child's growth.">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px" }}>
+            {staff.map((s) => (
+              <div key={s.id} style={{ ...card, padding: "20px 12px", textAlign: "center" }}>
+                {s.photoURL ? (
+                  <img
+                    src={s.photoURL}
+                    alt=""
+                    style={{ width: "76px", height: "76px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", display: "block" }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "76px",
+                      height: "76px",
+                      borderRadius: "50%",
+                      background: "#eef0ff",
+                      color: theme.colors.primary,
+                      margin: "0 auto",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Briefcase size={28} />
+                  </div>
+                )}
+                <div style={{ fontWeight: 800, fontSize: "14px", color: theme.colors.text, marginTop: "12px" }}>{s.name}</div>
+                <div style={{ fontSize: "12px", color: theme.colors.primary, fontWeight: 600, marginTop: "2px" }}>{s.title}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      <Section title="How to Join Us" subtitle="Getting your child enrolled is simple and quick.">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+          {STEPS.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.title} style={{ ...card, padding: "20px", position: "relative" }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "14px",
+                    right: "16px",
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    background: theme.colors.primary,
+                    color: "#ffffff",
+                    fontSize: "13px",
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  {i + 1}
+                </div>
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "14px",
+                    background: "#eef0ff",
+                    color: theme.colors.primary,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Icon size={24} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: "16px", color: theme.colors.text, margin: "14px 0 6px" }}>{s.title}</div>
+                <div style={{ fontSize: "14px", color: theme.colors.textMuted, lineHeight: 1.6 }}>{s.text}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {testimonials.length > 0 && (
+        <Section title="What Our Families Say" subtitle="Real experiences from our school community.">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+            {testimonials.map((t) => (
+              <div key={t.id} style={{ ...card, padding: "20px" }}>
+                <div style={{ color: "#d4a017", fontSize: "17px", letterSpacing: "2px" }}>★★★★★</div>
+                <p style={{ fontSize: "14px", color: "#374151", lineHeight: 1.7, fontStyle: "italic", margin: "10px 0 16px" }}>
+                  "{t.quote}"
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      background: theme.colors.primary,
+                      color: "#ffffff",
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0
+                    }}
+                  >
+                    {(t.name || "?").charAt(0)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "14px", color: theme.colors.text }}>{t.name}</div>
+                    <div style={{ fontSize: "12px", color: theme.colors.textMuted }}>{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {faqs.length > 0 && (
+        <Section title="Frequently Asked Questions" subtitle="Everything you might want to know before registering.">
+          <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+            {faqs.map((f, i) => {
+              const open = openFaq === i;
+              return (
+                <div key={f.id} style={{ ...card, marginBottom: "10px", overflow: "hidden" }}>
+                  <div
+                    onClick={() => setOpenFaq(open ? null : i)}
+                    style={{
+                      padding: "16px",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "12px",
+                      fontWeight: 700,
+                      fontSize: "14px",
+                      color: theme.colors.text
+                    }}
+                  >
+                    <span>{f.question}</span>
+                    {open ? <ChevronUp size={18} color={theme.colors.primary} /> : <ChevronDown size={18} color={theme.colors.textMuted} />}
+                  </div>
+                  {open && (
+                    <div style={{ padding: "0 16px 16px", fontSize: "14px", color: theme.colors.textMuted, lineHeight: 1.7 }}>
+                      {f.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      <div style={{ padding: "50px 16px 0" }}>
+        <div
+          style={{
+            maxWidth: "720px",
+            margin: "0 auto",
+            background: theme.gradient("#4338ca", "#7c3aed"),
+            borderRadius: theme.radius.lg,
+            padding: "34px 22px",
+            textAlign: "center",
+            boxShadow: "0 12px 28px rgba(67,56,202,0.35)"
+          }}
+        >
+          <div role="heading" aria-level={2} style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff" }}>
+            Ready to Join Our School Community?
+          </div>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(255,255,255,0.9)", margin: "10px 0 20px" }}>
+            Registration takes less than five minutes, for students, parents and teachers alike.
           </p>
           <button
             onClick={() => setMode("signup")}
-            style={{ background: "white", color: "#1f4d3a", border: "none", padding: "13px 30px", borderRadius: "8px", fontWeight: "bold", fontSize: "15px", cursor: "pointer" }}
+            style={{
+              background: "white",
+              color: theme.colors.primary,
+              border: "none",
+              borderRadius: theme.radius.md,
+              padding: "14px 32px",
+              fontWeight: 800,
+              fontSize: "15px"
+            }}
           >
             Register Now
           </button>
         </div>
       </div>
 
-      {contactInfo && (contactInfo.address || contactInfo.phone1 || contactInfo.email) && (
-        <div style={{ maxWidth: "700px", margin: "0 auto", padding: "36px 20px", display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "center" }}>
-          {contactInfo.address && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", maxWidth: "220px" }}>
-              <MapPin size={18} color="#1f4d3a" />
-              <span style={{ fontSize: "13px", color: "#444" }}>{contactInfo.address}</span>
-            </div>
-          )}
-          {contactInfo.phone1 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Phone size={18} color="#1f4d3a" />
-              <span style={{ fontSize: "13px", color: "#444" }}>{contactInfo.phone1}</span>
-            </div>
-          )}
-          {contactInfo.email && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Mail size={18} color="#1f4d3a" />
-              <span style={{ fontSize: "13px", color: "#444" }}>{contactInfo.email}</span>
-            </div>
-          )}
-          {contactInfo.officeHours && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Clock size={18} color="#1f4d3a" />
-              <span style={{ fontSize: "13px", color: "#444" }}>{contactInfo.officeHours}</span>
-            </div>
-          )}
-        </div>
+      {hasContact && (
+        <Section title="Get in Touch" subtitle="We would love to hear from you.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
+            {contact.address && (
+              <ContactRow icon={MapPin} tone={{ bg: "#fee2e2", fg: "#dc2626" }}>
+                {contact.address}
+                <div>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: theme.colors.primary, fontWeight: 700, fontSize: "13px", textDecoration: "none" }}
+                  >
+                    Open in Maps
+                  </a>
+                </div>
+              </ContactRow>
+            )}
+            {(contact.phone1 || contact.phone2) && (
+              <ContactRow icon={Phone} tone={{ bg: "#dcfce7", fg: "#16a34a" }}>
+                {[contact.phone1, contact.phone2].filter(Boolean).map((p) => (
+                  <div key={p}>
+                    <a href={`tel:${digits(p)}`} style={{ color: theme.colors.primary, fontWeight: 700, textDecoration: "none" }}>{p}</a>
+                  </div>
+                ))}
+              </ContactRow>
+            )}
+            {contact.email && (
+              <ContactRow icon={Mail} tone={{ bg: "#e0f2fe", fg: "#0284c7" }}>
+                <a href={`mailto:${contact.email}`} style={{ color: theme.colors.primary, fontWeight: 700, textDecoration: "none" }}>
+                  {contact.email}
+                </a>
+              </ContactRow>
+            )}
+            {contact.officeHours && (
+              <ContactRow icon={Clock} tone={{ bg: "#fef3c7", fg: "#d97706" }}>
+                {contact.officeHours}
+              </ContactRow>
+            )}
+          </div>
+        </Section>
       )}
 
-      <div style={{ textAlign: "center", padding: "20px", color: "#999", fontSize: "12px", borderTop: "1px solid #eee" }}>
+      <div
+        style={{
+          marginTop: "54px",
+          background: "#1e1b4b",
+          color: "rgba(255,255,255,0.75)",
+          textAlign: "center",
+          padding: "22px 16px",
+          fontSize: "12px"
+        }}
+      >
+        <div style={{ fontWeight: 700, color: "#ffffff", marginBottom: "4px", textTransform: "uppercase" }}>
+          {school?.schoolName || ""}
+        </div>
         Developed by EPIC TRIBE RESOURCES INT.
       </div>
 
