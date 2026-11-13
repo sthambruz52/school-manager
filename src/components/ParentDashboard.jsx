@@ -1,22 +1,70 @@
 import { useState } from "react";
+import { auth } from "../firebase";
+import { sendEmailVerification } from "firebase/auth";
 import { theme } from "../theme";
 import Header from "./ui/Header";
 import Card from "./ui/Card";
+import Button from "./ui/Button";
 import StudentOverview from "./StudentOverview";
+import { useMyChildren } from "../hooks/useAccessScope";
 
-export default function ParentDashboard({ userData }) {
-  const children = userData.children || [];
-  const [selected, setSelected] = useState(children[0]?.uid || "");
+export default function ParentDashboard() {
+  const { children, loading, unverified } = useMyChildren(true);
+  const [selected, setSelected] = useState("");
+  const [mail, setMail] = useState("idle");
+
+  const email = auth.currentUser?.email || "";
   const active = children.find((c) => c.uid === selected) || children[0];
+
+  const resend = async () => {
+    setMail("sending");
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setMail("sent");
+    } catch (err) {
+      setMail("error");
+    }
+  };
+
+  const refresh = async () => {
+    try {
+      await auth.currentUser.reload();
+      await auth.currentUser.getIdToken(true);
+    } catch (err) {
+      /* ignore */
+    }
+    window.location.reload();
+  };
+
+  const muted = { color: theme.colors.textMuted, fontSize: "14px", lineHeight: 1.6, margin: 0 };
 
   return (
     <div style={{ maxWidth: "700px", margin: "10px auto 0", padding: "0 16px" }}>
-      <Header title="My Child" subtitle={active ? active.name : "Grades, fees and attendance"} />
+      <Header
+        title={children.length > 1 ? "My Children" : "My Child"}
+        subtitle={active ? active.name : "Grades, fees and attendance"}
+      />
 
-      {children.length === 0 ? (
-        <Card>
-          <p style={{ textAlign: "center", color: theme.colors.textMuted, margin: "10px 0" }}>
-            No ward linked yet. Open "My Profile" from the menu to search for and link your child.
+      {unverified ? (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "6px" }}>Verify your email first</div>
+          <p style={muted}>
+            To protect your child's records, we only show them once your email address ({email}) is verified. Open the email we sent you and tap the link.
+          </p>
+          {mail === "sent" && <p style={{ ...muted, color: theme.colors.success, marginTop: "8px" }}>A new link was sent. Check your inbox and spam folder.</p>}
+          {mail === "error" && <p style={{ ...muted, color: theme.colors.danger, marginTop: "8px" }}>Could not send the email. Please try again later.</p>}
+          <div style={{ display: "flex", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
+            <Button onClick={resend} disabled={mail === "sending"}>{mail === "sending" ? "Sending..." : "Resend email"}</Button>
+            <Button variant="outline" onClick={refresh}>I've verified</Button>
+          </div>
+        </Card>
+      ) : loading ? (
+        <p style={{ textAlign: "center", color: theme.colors.textMuted, margin: "30px 0" }}>Loading...</p>
+      ) : children.length === 0 ? (
+        <Card style={{ marginTop: "14px" }}>
+          <div style={{ fontWeight: "800", color: theme.colors.text, marginBottom: "6px" }}>No child linked yet</div>
+          <p style={muted}>
+            Your child appears here automatically once they are registered with <strong>{email}</strong> as the parent email. If they used a different email, ask the school office to correct it.
           </p>
         </Card>
       ) : (
@@ -44,7 +92,7 @@ export default function ParentDashboard({ userData }) {
               ))}
             </div>
           )}
-          <StudentOverview key={active.uid} studentId={active.uid} fallbackName={active.name} />
+          <StudentOverview key={active.uid} studentId={active.uid} fallbackName={active.name} showExtras selfLabel="Your child" />
         </>
       )}
     </div>

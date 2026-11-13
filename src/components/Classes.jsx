@@ -11,7 +11,7 @@ import Avatar from "./ui/Avatar";
 import StatusPill from "./ui/StatusPill";
 import EmptyState from "./ui/EmptyState";
 import SelectWithManual from "./ui/SelectWithManual";
-
+import { useAccessScope } from "../hooks/useAccessScope";
 const DEFAULT_CLASS_LEVELS = [
   "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
   "JSS1", "JSS2", "JSS3",
@@ -34,7 +34,7 @@ export default function Classes({ isAdmin }) {
   const [adding, setAdding] = useState(false);
 
   const canSeeContacts = myRole === "Admin" || myRole === "Teacher";
-
+  const scope = useAccessScope();
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "Student"));
     const unsub = onSnapshot(q, (snap) => setStudents(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
@@ -74,7 +74,8 @@ export default function Classes({ isAdmin }) {
   const studentExtras = [...new Set(students.map((s) => s.classLevel).filter(Boolean))].filter(
     (c) => !DEFAULT_CLASS_LEVELS.includes(c) && !customNames.includes(c)
   );
-  const allClasses = [...DEFAULT_CLASS_LEVELS, ...customNames, ...studentExtras];
+    const everyClass = [...DEFAULT_CLASS_LEVELS, ...customNames, ...studentExtras];
+  const allClasses = scope.classes ? everyClass.filter((c) => scope.classes.includes(c)) : everyClass;
 
   const addClass = async () => {
     const name = newClass.trim().replace(/\s+/g, " ");
@@ -122,7 +123,7 @@ export default function Classes({ isAdmin }) {
     <div style={{ marginTop: "10px" }}>
       <Header
         title="Classes"
-        subtitle={`${students.length} student${students.length !== 1 ? "s" : ""} across ${allClasses.length} classes`}
+                subtitle={`${students.filter((s) => allClasses.includes(s.classLevel)).length} student${students.filter((s) => allClasses.includes(s.classLevel)).length !== 1 ? "s" : ""} across ${allClasses.length} class${allClasses.length !== 1 ? "es" : ""}`}`${students.length} student${students.length !== 1 ? "s" : ""} across ${allClasses.length} classes`}
         rightSlot={
           isAdmin ? (
             <HeaderAction

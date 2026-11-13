@@ -12,7 +12,7 @@ import StatusPill from "./ui/StatusPill";
 import ProgressBar from "./ui/ProgressBar";
 import EmptyState from "./ui/EmptyState";
 import SelectWithManual from "./ui/SelectWithManual";
-
+import { useAccessScope } from "../hooks/useAccessScope";
 const DEFAULT_CLASSES = [
   "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
   "JSS1", "JSS2", "JSS3",
@@ -62,7 +62,9 @@ export default function Assignments({ canManage, studentView }) {
   const [flash, setFlash] = useState(null);
 
   const studentUid = studentView?.studentId;
-
+  const scope = useAccessScope();
+  const mySubjects = scope.me?.subjects || [];
+  const inMySubjects = (subject) => mySubjects.length === 0 || mySubjects.includes(subject);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "assignments"), (snap) => {
       setAssignments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -167,7 +169,7 @@ export default function Assignments({ canManage, studentView }) {
 
   if (studentView) {
     const mine = assignments
-      .filter((a) => a.classLevel === studentView.classLevel)
+            .filter((a) => a.classLevel === studentView.classLevel && inMySubjects(a.subject))
       .sort((a, b) => ms(b) - ms(a));
 
     return (

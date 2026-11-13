@@ -53,11 +53,15 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!fullName.trim() || !classLevel.trim() || !dateOfBirth || !sex || !parentName.trim() || !parentPhone.trim()) {
+        if (!fullName.trim() || !classLevel.trim() || !dateOfBirth || !sex || !parentName.trim() || !parentPhone.trim() || !parentEmail.trim()) {
       return alert("Please fill in all the required fields (marked with *).");
     }
     if (!PHONE_OK.test(parentPhone.replace(/\s/g, ""))) {
       return alert("Please enter a valid parent phone number (10-15 digits).");
+    }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail.trim())) {
+      return alert("Please enter a valid email address for the parent or guardian.");
     }
 
     setSaving(true);
@@ -82,7 +86,7 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
           photoURL,
           address,
           parentName: parentName.trim(),
-          parentEmail: parentEmail.trim(),
+                    parentEmail: parentEmail.trim().toLowerCase(),
           parentPhone: parentPhone.trim(),
           parentAddress,
           profileComplete: true
@@ -162,7 +166,7 @@ export default function StudentProfile({ onComplete, existingData, targetUid }) 
           <FormSection title="Parent / Guardian">
             <input value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Parent's full name *" style={full} />
             <input type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} placeholder="Parent's phone number *" style={full} />
-            <input type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} placeholder="Parent's email (optional)" style={full} />
+            <input type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} placeholder="Parent's email * (they will use it to sign up)" style={full} />
           </FormSection>
 
           <FormSection title="Parent's address">

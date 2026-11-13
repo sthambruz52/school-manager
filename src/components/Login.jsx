@@ -290,6 +290,11 @@ export default function Login({ onLoginSuccess, initialMode, onBack }) {
                 {notice}
               </div>
             )}
+                        {isSignup && role === "Parent" && (
+              <div style={{ background: "#eef0ff", color: theme.colors.primary, fontSize: "13px", fontWeight: "600", padding: "10px 12px", borderRadius: theme.radius.sm }}>
+                Sign up with the same email address your child's registration lists as the parent email. Your child's dashboard will appear automatically once you verify your email.
+              </div>
+            )}
             {isSignup && role === "Teacher" && (
               <div style={{ background: "#eef0ff", color: theme.colors.primary, fontSize: "13px", fontWeight: "600", padding: "10px 12px", borderRadius: theme.radius.sm }}>
                 Teacher accounts are reviewed by the school administrator. You will see your dashboard once you are approved.

@@ -20,6 +20,7 @@ import ManagementAccess from "./components/ManagementAccess";
 import PendingApproval from "./components/PendingApproval";
 import PolicyLink from "./components/PolicyLink";
 import VerifyEmailBanner from "./components/VerifyEmailBanner";
+import FamilySync from "./components/FamilySync";
 import BottomNav from "./components/ui/BottomNav";
 import { NAV_ITEMS } from "./navConfig";
 import StaffDirectory from "./components/StaffDirectory";
@@ -507,6 +508,7 @@ function App() {
         <ManagementViews activeView={activeView} students={students} />
       )}
             <VerifyEmailBanner user={user} />      
+                  {userRole === "Parent" && <FamilySync />}
             <div style={{ height: '100px' }} />
       {!menuOpen && (
         <BottomNav

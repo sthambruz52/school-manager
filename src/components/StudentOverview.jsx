@@ -24,7 +24,7 @@ const pctColor = (pct) => (pct >= 60 ? theme.colors.success : pct >= 40 ? theme.
 const feeStatus = (f) => (f.amountPaid >= f.totalDue ? "Full Payment" : f.amountPaid > 0 ? "Part Payment" : "Unpaid");
 const feeVariant = (s) => (s === "Full Payment" ? "success" : s === "Part Payment" ? "warning" : "danger");
 
-export default function StudentOverview({ studentId, showExtras = false, fallbackName = "" }) {
+export default function StudentOverview({ studentId, showExtras = false, fallbackName = "", selfLabel = "You" }) {
   const [student, setStudent] = useState(null);
   const [grades, setGrades] = useState([]);
   const [fees, setFees] = useState([]);
@@ -121,7 +121,14 @@ export default function StudentOverview({ studentId, showExtras = false, fallbac
   const ctPhone = ctDoc?.phone ? String(ctDoc.phone).replace(/[^0-9+]/g, "") : "";
 
   const roster = [...classmates].sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
-  const activeTeachers = teachers.filter((t) => t.status !== "disabled" && t.approved !== false);
+    const myTeacherIds = classTeacher?.teacherIds || (classTeacher?.teacherId ? [classTeacher.teacherId] : []);
+  const mySubjectNames = student?.subjects || [];
+  const activeTeachers = teachers.filter(
+    (t) =>
+      t.status !== "disabled" &&
+      t.approved !== false &&
+      (myTeacherIds.includes(t.id) || (t.subjects || []).some((s) => mySubjectNames.includes(s)))
+  );
   const name = student?.fullName || fallbackName;
 
   const heading = { fontWeight: "800", color: theme.colors.text };
@@ -129,7 +136,7 @@ export default function StudentOverview({ studentId, showExtras = false, fallbac
 
   return (
     <div>
-      {!showExtras && (
+      {true && (
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <Avatar name={name} photoURL={student?.photoURL} size={84} />
@@ -339,7 +346,7 @@ export default function StudentOverview({ studentId, showExtras = false, fallbac
                       <span style={{ width: "22px", fontWeight: "700", color: theme.colors.textMuted, fontSize: "13px" }}>{i + 1}</span>
                       <Avatar name={c.fullName} photoURL={c.photoURL} size={40} />
                       <span style={{ flex: 1, fontSize: "14px", fontWeight: "600", color: theme.colors.text }}>{c.fullName}</span>
-                      {c.id === studentId && <StatusPill label="You" variant="info" />}
+                                            {c.id === studentId && <StatusPill label={selfLabel} variant="info" />}
                     </div>
                   ))
                 )}

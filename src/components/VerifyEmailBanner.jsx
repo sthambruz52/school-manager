@@ -91,7 +91,15 @@ export default function VerifyEmailBanner({ user }) {
             {state === "sending" ? "Sending..." : "Resend email"}
           </button>
           <button
-            onClick={() => window.location.reload()}
+                        onClick={async () => {
+              try {
+                await user.reload();
+                await user.getIdToken(true);
+              } catch (e) {
+                /* ignore */
+              }
+              window.location.reload();
+            }}
             style={{ ...small, background: "#eef0ff", color: theme.colors.primary }}
           >
             I've verified
