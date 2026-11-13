@@ -12,6 +12,7 @@ import StatusPill from "./ui/StatusPill";
 import EmptyState from "./ui/EmptyState";
 import SelectWithManual from "./ui/SelectWithManual";
 import { useAccessScope } from "../hooks/useAccessScope";
+
 const DEFAULT_CLASS_LEVELS = [
   "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
   "JSS1", "JSS2", "JSS3",
@@ -33,8 +34,9 @@ export default function Classes({ isAdmin }) {
   const [formKey, setFormKey] = useState(0);
   const [adding, setAdding] = useState(false);
 
-  const canSeeContacts = myRole === "Admin" || myRole === "Teacher";
   const scope = useAccessScope();
+  const canSeeContacts = myRole === "Admin" || myRole === "Teacher";
+
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "Student"));
     const unsub = onSnapshot(q, (snap) => setStudents(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
@@ -74,15 +76,18 @@ export default function Classes({ isAdmin }) {
   const studentExtras = [...new Set(students.map((s) => s.classLevel).filter(Boolean))].filter(
     (c) => !DEFAULT_CLASS_LEVELS.includes(c) && !customNames.includes(c)
   );
-    const everyClass = [...DEFAULT_CLASS_LEVELS, ...customNames, ...studentExtras];
+  const everyClass = [...DEFAULT_CLASS_LEVELS, ...customNames, ...studentExtras];
+
+  // Students and parents see only their own class, teachers only the classes they teach.
   const allClasses = scope.classes ? everyClass.filter((c) => scope.classes.includes(c)) : everyClass;
+  const visibleStudentCount = students.filter((s) => allClasses.includes(s.classLevel)).length;
 
   const addClass = async () => {
     const name = newClass.trim().replace(/\s+/g, " ");
     if (!name) return alert("Choose or type a class name.");
     if (name.includes("/")) return alert("Class names can't contain a / character.");
     if (name.length > 40) return alert("That class name is too long.");
-    if (allClasses.some((c) => c.toLowerCase() === name.toLowerCase())) {
+    if (everyClass.some((c) => c.toLowerCase() === name.toLowerCase())) {
       return alert(`${name} is already in the list.`);
     }
 
@@ -119,11 +124,19 @@ export default function Classes({ isAdmin }) {
     return <a href={`tel:${digits}`} style={{ color: theme.colors.primary, fontWeight: "600" }}>{value}</a>;
   };
 
+  if (scope.loading) {
+    return <p style={{ textAlign: "center", color: theme.colors.textMuted, margin: "40px 0" }}>Loading...</p>;
+  }
+
+  const subtitle =
+    `${visibleStudentCount} student${visibleStudentCount !== 1 ? "s" : ""} across ` +
+    `${allClasses.length} class${allClasses.length !== 1 ? "es" : ""}`;
+
   return (
     <div style={{ marginTop: "10px" }}>
       <Header
         title="Classes"
-                subtitle={`${students.filter((s) => allClasses.includes(s.classLevel)).length} student${students.filter((s) => allClasses.includes(s.classLevel)).length !== 1 ? "s" : ""} across ${allClasses.length} class${allClasses.length !== 1 ? "es" : ""}`}`${students.length} student${students.length !== 1 ? "s" : ""} across ${allClasses.length} classes`}
+        subtitle={subtitle}
         rightSlot={
           isAdmin ? (
             <HeaderAction
@@ -143,7 +156,7 @@ export default function Classes({ isAdmin }) {
               key={formKey}
               value={newClass}
               onChange={setNewClass}
-              options={PRESET_NEW.filter((p) => !allClasses.some((c) => c.toLowerCase() === p.toLowerCase()))}
+              options={PRESET_NEW.filter((p) => !everyClass.some((c) => c.toLowerCase() === p.toLowerCase()))}
               placeholder="Select a class"
               manualPlaceholder="Type the class name"
             />
@@ -244,7 +257,12 @@ export default function Classes({ isAdmin }) {
         );
       })}
 
-      {students.length === 0 && <EmptyState icon={LayoutGrid} text="No students registered yet." />}
+      {allClasses.length === 0 && (
+        <EmptyState
+          icon={LayoutGrid}
+          text={scope.role === "Teacher" ? "No classes have been assigned to you yet." : "No classes to show yet."}
+        />
+      )}
     </div>
   );
 }
